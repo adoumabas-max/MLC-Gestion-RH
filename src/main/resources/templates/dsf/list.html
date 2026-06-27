@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('DSF')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('dsf')}"></nav><main>
+  <h1>M08 — Fiscal / DSF</h1>
+  <div class="sub">Déclaration Statistique et Fiscale annuelle (IRPP, CAC, CFC, RAV, TDL)</div>
+
+  <p>Exercice
+    <select onchange="location.href='/dsf?annee='+this.value">
+      <option th:if="${annees.isEmpty()}" th:value="${anneeSel}" th:text="${anneeSel}" selected></option>
+      <option th:each="a : ${annees}" th:value="${a}" th:text="${a}" th:selected="${a==anneeSel}"></option>
+    </select>
+    <a class="btn" style="margin-left:8px" th:href="@{'/dsf/' + ${anneeSel} + '.pdf'}" target="_blank">Éditer la DSF (PDF)</a>
+  </p>
+
+  <table><thead><tr><th>Matricule</th><th>Nom</th><th class="right">Mois</th><th class="right">Brut annuel</th>
+    <th class="right">IRPP</th><th class="right">CAC</th><th class="right">CFC</th><th class="right">RAV</th>
+    <th class="right">TDL</th><th class="right">Net annuel</th></tr></thead>
+    <tbody>
+      <tr th:each="l : ${lignes}">
+        <td th:text="${l.matricule}"></td><td th:text="${l.nom}"></td>
+        <td class="right" th:text="${l.mois}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.brut,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.irpp,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.cac,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.cfc,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.rav,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.tdl,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.net,0,'POINT')}"></td></tr>
+      <tr th:if="${#lists.isEmpty(lignes)}"><td colspan="10" style="text-align:center;color:#7a8893">Aucun bulletin pour cet exercice.</td></tr>
+      <tr th:unless="${#lists.isEmpty(lignes)}" style="font-weight:700;background:#eef3f9">
+        <td colspan="3" th:text="'TOTAUX ' + ${anneeSel}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totBrut,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totIrpp,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totCac,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totCfc,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totRav,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totTdl,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totNet,0,'POINT')}"></td></tr>
+    </tbody></table>
+</main></div></body></html>

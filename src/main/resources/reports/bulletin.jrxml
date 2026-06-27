@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="bulletin" pageWidth="595" pageHeight="842" columnWidth="555"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+  <parameter name="societe" class="java.lang.String"/>
+  <parameter name="periode" class="java.lang.String"/>
+  <parameter name="salarie" class="java.lang.String"/>
+  <parameter name="matricule" class="java.lang.String"/>
+  <parameter name="sbt" class="java.lang.Long"/>
+  <parameter name="totalRetenues" class="java.lang.Long"/>
+  <parameter name="netAPayer" class="java.lang.Long"/>
+  <parameter name="coutEmployeur" class="java.lang.Long"/>
+  <title>
+    <band height="70">
+      <textField>
+        <reportElement x="0" y="0" width="555" height="22"/>
+        <textElement><font size="13" isBold="true"/></textElement>
+        <textFieldExpression><![CDATA[$P{societe} + " — Bulletin de paie"]]></textFieldExpression>
+      </textField>
+      <textField>
+        <reportElement x="0" y="26" width="555" height="16"/>
+        <textFieldExpression><![CDATA["Période : " + $P{periode} + "   —   " + $P{salarie} + " (" + $P{matricule} + ")"]]></textFieldExpression>
+      </textField>
+    </band>
+  </title>
+  <detail>
+    <band height="120">
+      <textField>
+        <reportElement x="0" y="0" width="555" height="18"/>
+        <textFieldExpression><![CDATA["Salaire brut taxable : " + $P{sbt} + " FCFA"]]></textFieldExpression>
+      </textField>
+      <textField>
+        <reportElement x="0" y="22" width="555" height="18"/>
+        <textFieldExpression><![CDATA["Total retenues : " + $P{totalRetenues} + " FCFA"]]></textFieldExpression>
+      </textField>
+      <textField>
+        <reportElement x="0" y="44" width="555" height="20"/>
+        <textElement><font size="12" isBold="true"/></textElement>
+        <textFieldExpression><![CDATA["NET À PAYER : " + $P{netAPayer} + " FCFA"]]></textFieldExpression>
+      </textField>
+      <textField>
+        <reportElement x="0" y="70" width="555" height="16"/>
+        <textFieldExpression><![CDATA["Coût total employeur : " + $P{coutEmployeur} + " FCFA"]]></textFieldExpression>
+      </textField>
+      <textField>
+        <reportElement x="0" y="96" width="555" height="14"/>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA["MLC-RH-BUL — Document interne SMQ — Mercure Logistics SARL"]]></textFieldExpression>
+      </textField>
+    </band>
+  </detail>
+</jasperReport>

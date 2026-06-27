@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('DIPE')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('dipe')}"></nav><main>
+  <h1>M07 — CNPS / DIPE</h1>
+  <div class="sub">Déclaration nominative (PVID 4,2 %+4,2 % · alloc. fam. 7 % · accident 2,5 %)</div>
+
+  <h3>Synthèse mensuelle</h3>
+  <table><thead><tr><th>Période</th><th class="right">PVID salarié</th><th class="right">PVID employeur</th>
+    <th class="right">Alloc. familiales</th><th class="right">Accident</th><th class="right">Total CNPS</th></tr></thead>
+    <tbody>
+      <tr th:each="e : ${periodes}">
+        <td><a th:href="@{/dipe(periode=${e.key})}" th:text="${e.key}"></a></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[0],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[1],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[2],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[3],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[0]+e.value[1]+e.value[2]+e.value[3],0,'POINT')}"></td></tr>
+      <tr th:if="${periodes.isEmpty()}"><td colspan="6" style="text-align:center;color:#7a8893">Aucune paie : générez des bulletins (M03).</td></tr>
+    </tbody></table>
+
+  <h3 th:if="${periodeSel != null}" style="margin-top:22px">DIPE nominatif — période
+    <select onchange="location.href='/dipe?periode='+this.value">
+      <option th:each="p : ${listePeriodes}" th:value="${p}" th:text="${p}" th:selected="${p==periodeSel}"></option>
+    </select>
+    <a class="btn" style="margin-left:8px" th:href="@{'/dipe/' + ${periodeSel} + '.pdf'}" target="_blank">Éditer le DIPE (PDF)</a></h3>
+  <table th:if="${periodeSel != null}">
+    <thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom</th><th class="right">Assiette</th>
+      <th class="right">PVID sal.</th><th class="right">PVID emp.</th><th class="right">Alloc. fam.</th>
+      <th class="right">Accident</th><th class="right">Total</th></tr></thead>
+    <tbody>
+      <tr th:each="l : ${lignes}">
+        <td th:text="${l.matricule}"></td><td th:text="${l.matCnps}"></td><td th:text="${l.nom}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.assiette,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.pvidSal,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.pvidPat,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.allocFam,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.accident,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(l.total,0,'POINT')}"></td></tr>
+      <tr th:if="${#lists.isEmpty(lignes)}"><td colspan="9" style="text-align:center;color:#7a8893">Aucune ligne pour cette période.</td></tr>
+      <tr th:unless="${#lists.isEmpty(lignes)}" style="font-weight:700;background:#eef3f9">
+        <td colspan="3">TOTAUX</td>
+        <td class="right" th:text="${#numbers.formatInteger(totAssiette,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totPvidSal,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totPvidPat,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totAllocFam,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totAccident,0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(totCnps,0,'POINT')}"></td></tr>
+    </tbody></table>
+</main></div></body></html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Postes')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('postes')}"></nav><main>
+  <h1>M11 — Organisation &amp; postes</h1><div class="sub">Référentiel des postes, services et catégories</div>
+  <form class="card" th:action="@{/postes}" method="post">
+    <div class="row"><div><label>Intitulé</label><input name="intitule"></div>
+      <div><label>Service</label><input name="service"></div></div>
+    <div class="row"><div><label>Catégorie</label><input name="categorie"></div><div></div></div>
+    <div style="margin-top:12px"><button class="btn or" type="submit">+ Ajouter</button></div>
+  </form>
+  <table><thead><tr><th>Poste</th><th>Service</th><th>Catégorie</th><th></th></tr></thead>
+    <tbody><tr th:each="p : ${postes}"><td th:text="${p.intitule}"></td><td th:text="${p.service}"></td><td th:text="${p.categorie}"></td>
+      <td><form th:action="@{'/postes/' + ${p.id} + '/supprimer'}" method="post"><button class="btn" style="background:#b3261e">Suppr.</button></form></td></tr>
+      <tr th:if="${#lists.isEmpty(postes)}"><td colspan="4" style="text-align:center;color:#7a8893">Aucun poste.</td></tr></tbody></table>
+</main></div></body></html>

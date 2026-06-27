@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Paramétrage')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('params')}"></nav><main>
+  <h1>M15 — Paramétrage légal</h1><div class="sub">Source unique de vérité — valeurs indicatives (révision annuelle)</div>
+  <div class="card"><b>Auto-test du moteur de paie</b> (cas de référence : base 350 000)
+    <div style="margin-top:10px">
+      <span th:if="${conforme}" class="pill ok">✔ CONFORME — net <span th:text="${#numbers.formatInteger(net,0,'POINT')}"></span> / coût <span th:text="${#numbers.formatInteger(cout,0,'POINT')}"></span></span>
+      <span th:unless="${conforme}" class="pill ko">✘ NON CONFORME</span>
+    </div></div>
+  <table><thead><tr><th>Paramètre</th><th>Valeur</th></tr></thead><tbody>
+    <tr><td>SMIG mensuel</td><td th:text="${p.smig} + ' FCFA'"></td></tr>
+    <tr><td>Plafond CNPS</td><td th:text="${p.plafondCnps} + ' FCFA'"></td></tr>
+    <tr><td>PVID salarié / employeur</td><td th:text="${p.pvidSal} + ' / ' + ${p.pvidPat}"></td></tr>
+    <tr><td>Allocations familiales</td><td th:text="${p.allocFam}"></td></tr>
+    <tr><td>Accident du travail</td><td th:text="${p.accidentTravail}"></td></tr>
+    <tr><td>CFC salarié / employeur</td><td th:text="${p.cfcSal} + ' / ' + ${p.cfcPat}"></td></tr>
+    <tr><td>FNE</td><td th:text="${p.fne}"></td></tr>
+    <tr><td>CAC</td><td th:text="${p.cac}"></td></tr>
+  </tbody></table>
+  <p class="sub" style="margin-top:10px">Barèmes IRPP/RAV/TDL définis dans <code>Parametres.defaut()</code> ; extension : table <code>parametre</code> versionnée.</p>
+</main></div></body></html>

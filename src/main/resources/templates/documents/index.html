@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Documents')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('documents')}"></nav><main>
+  <h1>M10 — Documents &amp; attestations</h1><div class="sub">Éditions PDF (JasperReports) — modèle MLC</div>
+  <table><thead><tr><th>Matricule</th><th>Salarié</th><th>Éditions PDF</th></tr></thead>
+    <tbody><tr th:each="s : ${salaries}"><td th:text="${s.matricule}"></td><td th:text="${s.nom} + ' ' + ${s.prenom}"></td>
+      <td><a class="btn" th:href="@{'/documents/' + ${s.id} + '/certificat.pdf'}" target="_blank">Certificat</a>
+          <a class="btn" style="background:#5b6b79" th:href="@{'/documents/' + ${s.id} + '/contrat.pdf'}" target="_blank">Contrat</a></td></tr>
+      <tr th:if="${#lists.isEmpty(salaries)}"><td colspan="3" style="text-align:center;color:#7a8893">Aucun salarié.</td></tr></tbody></table>
+</main></div></body></html>

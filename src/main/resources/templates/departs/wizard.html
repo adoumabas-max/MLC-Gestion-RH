@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Départs')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('departs')}"></nav><main>
+  <h1>M06 — Départs &amp; licenciements (W5)</h1>
+  <div class="sub">Préavis (arrêté 016/MTPS) — indemnité art. 37 — solde de tout compte</div>
+  <form class="card" th:action="@{/departs/calculer}" method="post">
+    <div class="row">
+      <div><label>Salarié</label><select name="salarieId">
+        <option th:each="s : ${salaries}" th:value="${s.id}" th:text="${s.matricule} + ' — ' + ${s.nom}"></option></select></div>
+      <div><label>Motif</label><select name="motif">
+        <option>Licenciement (motif personnel)</option><option>Licenciement (motif économique)</option>
+        <option>Démission</option><option>Fin de CDD</option><option>Licenciement (Faute lourde)</option></select></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn" type="submit">Calculer les droits</button></div>
+  </form>
+  <div class="card" th:if="${droits != null}">
+    <h2 style="color:#14506B" th:text="'Droits — ' + ${salarie.nom}">Droits</h2>
+    <table>
+      <tr><th>Ancienneté</th><td class="right" th:text="${#numbers.formatDecimal(droits.anciennete,1,1)} + ' ans'"></td>
+          <th>Salaire mensuel moyen</th><td class="right" th:text="${#numbers.formatInteger(droits.smm,0,'POINT')}"></td></tr>
+      <tr><th>Indemnité (art. 37)</th><td class="right" th:text="${#numbers.formatInteger(droits.indemnite,0,'POINT')}"></td>
+          <th th:text="'Préavis (' + ${droits.preavisMois} + ' mois)'">Préavis</th><td class="right" th:text="${#numbers.formatInteger(droits.indPreavis,0,'POINT')}"></td></tr>
+      <tr><th th:text="'Congés non pris (' + ${droits.congesNonPris} + ' j)'">Congés</th><td class="right" th:text="${#numbers.formatInteger(droits.allocConges,0,'POINT')}"></td>
+          <th>TOTAL des droits</th><td class="right" th:text="${#numbers.formatInteger(droits.total,0,'POINT')}"></td></tr>
+    </table>
+    <form th:action="@{/departs/valider}" method="post" style="margin-top:12px" sec:authorize="hasRole('DRH')"
+          xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+      <input type="hidden" name="salarieId" th:value="${salarie.id}">
+      <input type="hidden" name="motif" th:value="${motif}">
+      <label>Date de départ</label><input type="date" name="dateDepart" style="max-width:220px">
+      <div style="margin-top:10px"><button class="btn or" type="submit">Valider le départ</button></div>
+    </form>
+  </div>
+  <table><thead><tr><th>Date</th><th>Salarié (id)</th><th>Motif</th><th class="right">Indemnité</th></tr></thead>
+    <tbody><tr th:each="x : ${departs}"><td th:text="${x.dateDepart}"></td><td th:text="${x.salarieId}"></td>
+      <td th:text="${x.motif}"></td><td class="right" th:text="${#numbers.formatInteger(x.indemnite,0,'POINT')}"></td></tr>
+      <tr th:if="${#lists.isEmpty(departs)}"><td colspan="4" style="text-align:center;color:#7a8893">Aucun départ.</td></tr></tbody></table>
+</main></div></body></html>

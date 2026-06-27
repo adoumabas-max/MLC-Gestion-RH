@@ -1,0 +1,19 @@
+# Profil production : aucun secret par défaut.
+# Le démarrage échoue volontairement si ces variables d'environnement
+# ne sont pas fournies (pas de repli sur des valeurs en clair).
+spring:
+  datasource:
+    password: ${DB_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+app:
+  jwt:
+    # Doit faire au moins 32 octets (256 bits) — sinon échec au démarrage (JwtTokenProvider).
+    secret: ${JWT_SECRET}
+
+logging:
+  level:
+    org.springframework.security: WARN

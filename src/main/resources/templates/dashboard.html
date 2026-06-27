@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Tableau de bord')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap">
+  <nav th:replace="~{fragments/layout :: menu('dashboard')}"></nav>
+  <main>
+    <h1>Tableau de bord RH</h1>
+    <div class="sub">Indicateurs du processus S2 — Mercure Logistics</div>
+    <div class="grid">
+      <div class="kpi"><div class="v" th:text="${nbActifs}">0</div><div class="l">Salariés actifs</div></div>
+      <div class="kpi"><div class="v" th:text="${#numbers.formatInteger(masse,0,'POINT')} + ' F'">0</div><div class="l">Masse salariale (base)</div></div>
+      <div class="kpi"><div class="v" th:text="${#numbers.formatInteger(cout,0,'POINT')} + ' F'">0</div><div class="l">Coût employeur estimé</div></div>
+      <div class="kpi"><div class="v" th:text="${nbBulletins}">0</div><div class="l">Bulletins émis</div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <b>Conformité moteur de paie :</b>
+      <span th:if="${conforme}" class="pill ok">✔ Cas de référence validé (net 302 792 / coût 406 700)</span>
+      <span th:unless="${conforme}" class="pill ko">✘ Écart détecté — vérifier le paramétrage (M15)</span>
+    </div>
+  </main>
+</div>
+</body></html>
