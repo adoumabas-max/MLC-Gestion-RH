@@ -20,10 +20,18 @@ public class PaieController {
     private final BulletinRepository bulletins;
     private final PaieService paie;
     private final AuditService audit;
+    private final TempsRepository temps;
 
     public PaieController(SalarieRepository salaries, BulletinRepository bulletins,
-                          PaieService paie, AuditService audit) {
-        this.salaries = salaries; this.bulletins = bulletins; this.paie = paie; this.audit = audit;
+                          PaieService paie, AuditService audit, TempsRepository temps) {
+        this.salaries = salaries; this.bulletins = bulletins; this.paie = paie;
+        this.audit = audit; this.temps = temps;
+    }
+
+    /** Majoration HS pointée en M12 pour ce salarié et cette période (0 si aucun pointage). */
+    private long majorationHS(Long salarieId, String periode) {
+        return temps.findBySalarieIdAndPeriode(salarieId, periode)
+                .map(t -> t.getMontant() == null ? 0L : t.getMontant()).orElse(0L);
     }
 
     @GetMapping
@@ -39,8 +47,11 @@ public class PaieController {
                            @RequestParam(defaultValue = "0") long primesNonImposables,
                            @RequestParam(defaultValue = "0") long majorationsHS, Model model) {
         var s = salaries.findById(salarieId).orElseThrow();
+        // Report automatique de la majoration HS pointée en M12 si le champ est laissé à 0.
+        if (majorationsHS == 0) majorationsHS = majorationHS(salarieId, periode);
         PaieResult r = paie.calculer(s.getSalaireBase(), primesImposables, primesNonImposables, majorationsHS);
         model.addAttribute("salarie", s);
+        model.addAttribute("majorationsHS", majorationsHS);
         model.addAttribute("r", r);
         model.addAttribute("periode", periode);
         model.addAttribute("salaries", salaries.findBySocieteAndStatut("MLC", "Actif"));
@@ -52,7 +63,8 @@ public class PaieController {
     @PreAuthorize("hasAnyRole('DRH','PAIE')")
     public String valider(@RequestParam Long salarieId, @RequestParam String periode, Principal principal) {
         var s = salaries.findById(salarieId).orElseThrow();
-        PaieResult r = paie.calculer(s.getSalaireBase());
+        // Le bulletin validé intègre la majoration HS pointée en M12 pour la période.
+        PaieResult r = paie.calculer(s.getSalaireBase(), 0, 0, majorationHS(salarieId, periode));
         Bulletin b = new Bulletin();
         b.setSalarieId(salarieId); b.setPeriode(periode);
         b.setSbt(r.sbt()); b.setPvidSal(r.pvidSal()); b.setIrpp(r.irpp()); b.setCac(r.cac());

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Temps de travail')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('temps')}"></nav><main>
+  <h1>M12 — Temps de travail</h1>
+  <div class="sub">Durée légale 40 h/sem (Art. 80) ; heures sup. majorées (décret 95/677 : +20 % / +30 % / nuit +50 % / dimanche-férié +40 %). La majoration est reportée automatiquement dans la paie (M03) pour la même période.</div>
+
+  <form method="post" th:action="@{/temps}" class="card">
+    <div class="grid">
+      <div><label>Salarié</label>
+        <select name="salarieId">
+          <option th:each="s : ${salaries}" th:value="${s.id}"
+                  th:text="${s.matricule + ' — ' + s.nom + ' (' + #numbers.formatInteger(s.salaireBase,0,'POINT') + ')'}"></option>
+        </select></div>
+      <div><label>Période (AAAA-MM)</label><input name="periode" required placeholder="2026-06"></div>
+      <div><label>HS à +20 % (8 prem. h/sem)</label><input name="hs1" type="number" value="0" min="0"></div>
+      <div><label>HS à +30 % (au-delà)</label><input name="hs2" type="number" value="0" min="0"></div>
+      <div><label>Heures de nuit (+50 %)</label><input name="nuit" type="number" value="0" min="0"></div>
+      <div><label>Dimanche / férié (+40 %)</label><input name="dim" type="number" value="0" min="0"></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn" type="submit">Enregistrer le pointage</button></div>
+  </form>
+
+  <table>
+    <thead><tr><th>Salarié</th><th>Période</th><th class="right">Taux horaire</th>
+      <th class="right">Heures sup.</th><th class="right">Majoration HS</th></tr></thead>
+    <tbody>
+      <tr th:each="p : ${pointages}">
+        <td th:text="${p.matricule + ' — ' + p.nom}"></td>
+        <td th:text="${p.periode}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(p.tauxHoraire,0,'POINT')}"></td>
+        <td class="right" th:text="${p.heures}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(p.montant,0,'POINT')}"></td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(pointages)}"><td colspan="5" style="text-align:center;color:#7a8893">Aucun pointage.</td></tr>
+    </tbody>
+  </table>
+</main></div></body></html>
