@@ -301,6 +301,7 @@ const App = {
     ).join("");
   },
   go(c){ this.route=c; this.wiz=null; this.renderMenu(); (this["view_"+c]||this.view_todo).call(this); },
+  go2(c,arg){ this.route=c; this.wiz=null; this.renderMenu(); (this["view_"+c]||this.view_todo).call(this,arg); },
   set(html){ document.getElementById("view").innerHTML=html; },
 
   /* ---------- M09 Tableau de bord ---------- */
@@ -467,7 +468,10 @@ const App = {
     const sid=Number(document.getElementById("pa_sal").value); const s=salById(d,sid);
     if(!s){ document.getElementById("pa_res").innerHTML=`<div class="msg err">Sélectionnez un salarié.</div>`; return; }
     const per=document.getElementById("pa_per").value;
-    const r=calculePaie(s.salaireBase,g("pa_pi"),g("pa_pni"),g("pa_hs"));
+    // Report automatique de la majoration HS saisie en M12 (si le champ est laissé à 0).
+    let hs=g("pa_hs"); const hsTemps=this.majorationTemps(sid,per);
+    if(!hs && hsTemps){ hs=hsTemps; document.getElementById("pa_hs").value=hs; }
+    const r=calculePaie(s.salaireBase,g("pa_pi"),g("pa_pni"),hs);
     // Contrôle d'écart vs période précédente (dernier bulletin du salarié)
     const prec=bySoc(d.bulletins,d).filter(b=>b.salarieId===sid).slice(-1)[0];
     const ecart= prec? Math.round((r.netAPayer-prec.netAPayer)/(prec.netAPayer||1)*100):0;
@@ -619,35 +623,79 @@ const App = {
   },
 
   /* ---------- M07 CNPS / DIPE ---------- */
-  view_M07(){
-    const d=this.d, buls=bySoc(d.bulletins,d);
+  periodesBulletins(){ return [...new Set(bySoc(this.d.bulletins,this.d).map(b=>b.periode))].sort().reverse(); },
+  view_M07(per){
+    const d=this.d, periodes=this.periodesBulletins();
+    per = per || App._m07per || periodes[0] || "";
+    App._m07per=per;
+    // Synthèse mensuelle (toutes périodes) — PVID 8,4 % + PF 7 % + AT 2,5 % sur assiette plafonnée
     const parPer={};
-    buls.forEach(b=>{ const p=parPer[b.periode]||(parPer[b.periode]={n:0,pvid:0,pf:0,at:0,base:0});
+    bySoc(d.bulletins,d).forEach(b=>{ const p=parPer[b.periode]||(parPer[b.periode]={n:0,pvid:0,pf:0,at:0,base:0});
       p.n++; p.pvid+=b.pvidSal+b.pvidPat; p.pf+=b.allocFam; p.at+=b.accident; p.base+=b.sbt; });
-    const rows=Object.keys(parPer).sort().map(per=>{const x=parPer[per];return `
-      <tr><td>${esc(per)}</td><td>${x.n}</td><td class="right">${fmt(x.base)}</td><td class="right">${fmt(x.pvid)}</td>
-      <td class="right">${fmt(x.pf)}</td><td class="right">${fmt(x.at)}</td></tr>`;}).join("");
+    const synth=Object.keys(parPer).sort().reverse().map(p=>{const x=parPer[p];return `
+      <tr><td><a onclick="App.go2('M07','${p}')">${esc(p)}</a></td><td>${x.n}</td><td class="right">${fmt(x.base)}</td>
+      <td class="right">${fmt(x.pvid)}</td><td class="right">${fmt(x.pf)}</td><td class="right">${fmt(x.at)}</td>
+      <td class="right"><b>${fmt(x.pvid+x.pf+x.at)}</b></td></tr>`;}).join("");
+    // Détail par salarié pour la période sélectionnée
+    const lignes=bySoc(d.bulletins,d).filter(b=>b.periode===per);
+    const det=lignes.map(b=>{const s=salById(d,b.salarieId)||{};return `
+      <tr><td>${esc(s.matricule||"?")}</td><td>${esc(s.matCnps||"")}</td><td>${esc(s.nom||"")} ${esc(s.prenom||"")}</td>
+      <td class="right">${fmt(b.sbt)}</td><td class="right">${fmt(b.pvidSal)}</td><td class="right">${fmt(b.pvidPat)}</td>
+      <td class="right">${fmt(b.allocFam)}</td><td class="right">${fmt(b.accident)}</td>
+      <td class="right"><b>${fmt(b.pvidSal+b.pvidPat+b.allocFam+b.accident)}</b></td></tr>`;}).join("");
+    const tot=lignes.reduce((a,b)=>{a.base+=b.sbt;a.pvs+=b.pvidSal;a.pvp+=b.pvidPat;a.pf+=b.allocFam;a.at+=b.accident;return a;},
+      {base:0,pvs:0,pvp:0,pf:0,at:0});
     this.set(`
-      <h1>CNPS / DIPE</h1><div class="sub">M07 — déclaration mensuelle agrégée (PVID + PF + AT)</div>
-      <div class="card"><table><thead><tr><th>Période</th><th>Effectif</th><th class="right">Assiette</th>
-        <th class="right">PVID total</th><th class="right">Alloc. fam.</th><th class="right">Accident</th></tr></thead>
-      <tbody>${rows||`<tr><td colspan="6" class="muted">Aucune ligne — validez d'abord des bulletins (M03).</td></tr>`}</tbody></table></div>`);
+      <h1>CNPS / DIPE</h1><div class="sub">M07 — déclaration nominative (PVID 4,2 %+4,2 % · alloc. fam. 7 % · accident 2,5 %)</div>
+      <div class="card"><b>Synthèse mensuelle</b>
+        <table style="margin-top:8px"><thead><tr><th>Période</th><th>Effectif</th><th class="right">Assiette</th>
+          <th class="right">PVID total</th><th class="right">Alloc. fam.</th><th class="right">Accident</th><th class="right">Total CNPS</th></tr></thead>
+        <tbody>${synth||`<tr><td colspan="7" class="muted">Aucun bulletin validé (M03).</td></tr>`}</tbody></table></div>
+      ${per?`<div class="card"><div class="noprint" style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <b>DIPE nominatif — période</b>
+        <select onchange="App.go2('M07',this.value)">${periodes.map(p=>`<option ${p===per?'selected':''}>${esc(p)}</option>`).join("")}</select>
+        <button class="btn sec sm" onclick="App.imprimerDIPE('${per}')">Éditer le DIPE (PDF)</button></div>
+        <table><thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom</th><th class="right">Assiette</th>
+          <th class="right">PVID sal.</th><th class="right">PVID emp.</th><th class="right">Alloc.fam.</th><th class="right">Accident</th><th class="right">Total</th></tr></thead>
+        <tbody>${det||`<tr><td colspan="9" class="muted">Aucune ligne pour ${esc(per)}.</td></tr>`}
+          <tr class="bull"><td colspan="3" class="tot">TOTAUX ${esc(per)}</td><td class="right tot">${fmt(tot.base)}</td>
+          <td class="right tot">${fmt(tot.pvs)}</td><td class="right tot">${fmt(tot.pvp)}</td><td class="right tot">${fmt(tot.pf)}</td>
+          <td class="right tot">${fmt(tot.at)}</td><td class="right tot">${fmt(tot.pvs+tot.pvp+tot.pf+tot.at)}</td></tr></tbody></table></div>`:''}`);
   },
 
-  /* ---------- M08 Fiscal / DSF ---------- */
-  view_M08(){
-    const d=this.d, buls=bySoc(d.bulletins,d);
-    const t=buls.reduce((a,b)=>{a.irpp+=b.irpp;a.cac+=b.cac;a.cfc+=b.cfcSal+b.cfcPat;a.rav+=b.rav;a.tdl+=b.tdl;return a;},
-      {irpp:0,cac:0,cfc:0,rav:0,tdl:0});
+  /* ---------- M08 Fiscal / DSF (Déclaration Statistique et Fiscale annuelle) ---------- */
+  dsfAnnee(annee){
+    const d=this.d, buls=bySoc(d.bulletins,d).filter(b=>(b.periode||"").startsWith(annee));
+    const parSal={};
+    buls.forEach(b=>{ const k=b.salarieId; const p=parSal[k]||(parSal[k]={mois:0,brut:0,irpp:0,cac:0,cfc:0,rav:0,tdl:0,net:0});
+      p.mois++; p.brut+=b.sbt; p.irpp+=b.irpp; p.cac+=b.cac; p.cfc+=b.cfcSal+b.cfcPat; p.rav+=b.rav; p.tdl+=b.tdl; p.net+=b.netAPayer; });
+    return parSal;
+  },
+  view_M08(annee){
+    const d=this.d;
+    const annees=[...new Set(bySoc(d.bulletins,d).map(b=>(b.periode||"").slice(0,4)))].filter(Boolean).sort().reverse();
+    annee = annee || App._m08annee || annees[0] || String(new Date().getFullYear());
+    App._m08annee=annee;
+    const parSal=this.dsfAnnee(annee), ids=Object.keys(parSal);
+    const rows=ids.map(id=>{const s=salById(d,Number(id))||{},p=parSal[id];return `
+      <tr><td>${esc(s.matricule||"?")}</td><td>${esc(s.nom||"")} ${esc(s.prenom||"")}</td><td>${p.mois}</td>
+      <td class="right">${fmt(p.brut)}</td><td class="right">${fmt(p.irpp)}</td><td class="right">${fmt(p.cac)}</td>
+      <td class="right">${fmt(p.cfc)}</td><td class="right">${fmt(p.rav)}</td><td class="right">${fmt(p.tdl)}</td>
+      <td class="right"><b>${fmt(p.net)}</b></td></tr>`;}).join("");
+    const tot=ids.reduce((a,id)=>{const p=parSal[id];a.brut+=p.brut;a.irpp+=p.irpp;a.cac+=p.cac;a.cfc+=p.cfc;a.rav+=p.rav;a.tdl+=p.tdl;a.net+=p.net;return a;},
+      {brut:0,irpp:0,cac:0,cfc:0,rav:0,tdl:0,net:0});
     this.set(`
-      <h1>Fiscal / DSF</h1><div class="sub">M08 — récapitulatif IRPP / CAC / CFC / RAV / TDL (${buls.length} bulletins)</div>
-      <div class="card"><table><thead><tr><th>Impôt / taxe</th><th class="right">Cumul</th></tr></thead><tbody>
-        <tr><td>IRPP</td><td class="right">${fmt(t.irpp)}</td></tr>
-        <tr><td>CAC</td><td class="right">${fmt(t.cac)}</td></tr>
-        <tr><td>CFC (salarié + employeur)</td><td class="right">${fmt(t.cfc)}</td></tr>
-        <tr><td>RAV</td><td class="right">${fmt(t.rav)}</td></tr>
-        <tr><td>TDL</td><td class="right">${fmt(t.tdl)}</td></tr>
-      </tbody></table></div>`);
+      <h1>Fiscal / DSF</h1><div class="sub">M08 — Déclaration Statistique et Fiscale annuelle (IRPP / CAC / CFC / RAV / TDL)</div>
+      <div class="card noprint" style="display:flex;align-items:center;gap:10px">
+        <b>Exercice</b>
+        <select onchange="App.go2('M08',this.value)">${(annees.length?annees:[annee]).map(a=>`<option ${a===annee?'selected':''}>${esc(a)}</option>`).join("")}</select>
+        <button class="btn sec sm" onclick="App.imprimerDSF('${annee}')">Éditer la DSF (PDF)</button></div>
+      <div class="card"><table><thead><tr><th>Matricule</th><th>Nom</th><th>Mois</th><th class="right">Brut annuel</th>
+        <th class="right">IRPP</th><th class="right">CAC</th><th class="right">CFC</th><th class="right">RAV</th><th class="right">TDL</th><th class="right">Net annuel</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="10" class="muted">Aucun bulletin pour l'exercice ${esc(annee)}.</td></tr>`}
+        <tr class="bull"><td colspan="3" class="tot">TOTAUX ${esc(annee)}</td><td class="right tot">${fmt(tot.brut)}</td>
+        <td class="right tot">${fmt(tot.irpp)}</td><td class="right tot">${fmt(tot.cac)}</td><td class="right tot">${fmt(tot.cfc)}</td>
+        <td class="right tot">${fmt(tot.rav)}</td><td class="right tot">${fmt(tot.tdl)}</td><td class="right tot">${fmt(tot.net)}</td></tr></tbody></table></div>`);
   },
 
   /* ---------- M10 Documents ---------- */
@@ -664,12 +712,60 @@ const App = {
   },
 
   /* ---------- M12 Temps de travail ---------- */
-  view_M12(){
-    this.set(`<h1>Temps de travail</h1><div class="sub">M12 — durée légale 40 h/semaine, heures supplémentaires</div>
-      <div class="card"><p class="bull">Saisie des heures supplémentaires : la <b>majoration HS</b> est intégrée au calcul de paie (M03)
-      en tant que composante du salaire brut taxable, conformément au moteur §3.3.</p>
-      <p class="muted">Écran de pointage détaillé à compléter (interface prête).</p></div>`);
+  // Durée légale : 40 h/sem (Art. 80 CT) => ~173,33 h/mois. Taux horaire = salaireBase / 173,33.
+  HEURES_MOIS:173.33,
+  // Majorations heures sup. (décret n° 95/677) : 8 premières +20 %, suivantes +30 %,
+  // nuit +50 %, dimanche/jour férié +40 %.
+  calcHS(salaireBase,hs1,hs2,nuit,dim){
+    const th=salaireBase/this.HEURES_MOIS;
+    const montant=Math.round(th*(hs1*1.20 + hs2*1.30 + nuit*1.50 + dim*1.40));
+    return {th:Math.round(th),heures:hs1+hs2+nuit+dim,montant};
   },
+  view_M12(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif"), list=bySoc(d.temps,d);
+    this.set(`
+      <h1>Temps de travail</h1><div class="sub">M12 — durée légale 40 h/sem (Art. 80) ; heures sup. majorées (décret 95/677)</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="tp_sal" onchange="App.tpCalc()">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)} (${fmt(s.salaireBase)})</option>`).join("")||'<option value="">(aucun)</option>'}</select></div>
+        <div><label>Période (AAAA-MM)</label><input id="tp_per" value="${new Date().toISOString().slice(0,7)}" oninput="App.tpCalc()"></div>
+        <div><label>HS à +20 % (8 prem. h/sem)</label><input id="tp_h1" type="number" value="0" min="0" oninput="App.tpCalc()"></div>
+        <div><label>HS à +30 % (au-delà)</label><input id="tp_h2" type="number" value="0" min="0" oninput="App.tpCalc()"></div>
+        <div><label>Heures de nuit (+50 %)</label><input id="tp_nuit" type="number" value="0" min="0" oninput="App.tpCalc()"></div>
+        <div><label>Dimanche / férié (+40 %)</label><input id="tp_dim" type="number" value="0" min="0" oninput="App.tpCalc()"></div>
+      </div>
+      <p id="tp_res" class="bull"></p>
+      <button class="btn" onclick="App.tpSave()">Enregistrer le pointage</button>
+      <span class="muted" style="margin-left:8px">La majoration est reportée automatiquement dans la paie (M03) pour la même période.</span></div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th>Période</th><th class="right">Taux horaire</th>
+        <th class="right">Heures sup.</th><th class="right">Majoration HS</th><th class="noprint"></th></tr></thead>
+      <tbody>${list.length?list.map(t=>{const s=salById(d,t.salarieId)||{};return `
+        <tr><td>${esc(s.matricule||"?")} — ${esc(s.nom||"")}</td><td>${esc(t.periode)}</td>
+          <td class="right">${fmt(t.th)}</td><td class="right">${t.heures}</td><td class="right">${fmt(t.montant)}</td>
+          <td class="noprint"><button class="btn danger sm" onclick="App.tpDel(${t.id})">Suppr.</button></td></tr>`;}).join("")
+        :`<tr><td colspan="6" class="muted">Aucun pointage.</td></tr>`}</tbody></table></div>`);
+    this.tpCalc();
+  },
+  tpCalc(){
+    const d=this.d, g=id=>Number(document.getElementById(id).value||0);
+    const s=salById(d,Number(document.getElementById("tp_sal").value)); if(!s) return;
+    const r=this.calcHS(s.salaireBase,g("tp_h1"),g("tp_h2"),g("tp_nuit"),g("tp_dim"));
+    document.getElementById("tp_res").innerHTML=`Taux horaire <b>${fmt(r.th)}</b> FCFA · ${r.heures} h sup. · majoration à reporter en paie : <b>${fmt(r.montant)}</b> FCFA`;
+  },
+  tpSave(){
+    const d=this.d, g=id=>Number(document.getElementById(id).value||0);
+    const sid=Number(document.getElementById("tp_sal").value), s=salById(d,sid); if(!s) return;
+    const per=document.getElementById("tp_per").value;
+    const r=this.calcHS(s.salaireBase,g("tp_h1"),g("tp_h2"),g("tp_nuit"),g("tp_dim"));
+    // Un seul pointage par salarié + période (remplacement si réédition).
+    d.temps=d.temps.filter(x=>!(x.societe===soc(d)&&x.salarieId===sid&&x.periode===per));
+    const id=Store.next(d,"temps");
+    d.temps.push({id,societe:soc(d),salarieId:sid,periode:per,th:r.th,heures:r.heures,montant:r.montant});
+    audit(d,"Pointage (M12)",`${s.matricule} — ${per} — ${r.heures} h sup. — ${fmt(r.montant)}`);
+    this.save(); this.go("M12");
+  },
+  tpDel(id){ const d=this.d; d.temps=d.temps.filter(t=>t.id!==id); this.save(); this.go("M12"); },
+  // Majoration HS enregistrée pour un salarié + période (reportée en paie).
+  majorationTemps(sid,per){ const t=bySoc(this.d.temps,this.d).find(x=>x.salarieId===sid&&x.periode===per); return t?t.montant:0; },
   /* ---------- M13 Avances & prêts ---------- */
   view_M13(){
     const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif"), list=bySoc(d.avances,d);
@@ -820,6 +916,40 @@ const App = {
       depuis le ${esc(s.embauche||"")}, et perçoit un salaire de base de ${fmt(s.salaireBase)} FCFA.</p>
       <p>En foi de quoi la présente attestation lui est délivrée pour servir et valoir ce que de droit.</p>
       <p style="margin-top:30px">Fait à Douala, le ${new Date().toLocaleDateString("fr-FR")}.</p>
+      ${this.docFoot()}`);
+  },
+  imprimerDIPE(per){
+    const d=this.d, lignes=bySoc(d.bulletins,d).filter(b=>b.periode===per);
+    const corps=lignes.map(b=>{const s=salById(d,b.salarieId)||{};return `
+      <tr><td>${esc(s.matricule||"?")}</td><td>${esc(s.matCnps||"")}</td><td>${esc(s.nom||"")} ${esc(s.prenom||"")}</td>
+      <td class="right">${fmt(b.sbt)}</td><td class="right">${fmt(b.pvidSal+b.pvidPat)}</td>
+      <td class="right">${fmt(b.allocFam)}</td><td class="right">${fmt(b.accident)}</td></tr>`;}).join("");
+    const tot=lignes.reduce((a,b)=>{a.base+=b.sbt;a.pvid+=b.pvidSal+b.pvidPat;a.pf+=b.allocFam;a.at+=b.accident;return a;},{base:0,pvid:0,pf:0,at:0});
+    this.print(`${this.docHead("DIPE — Déclaration CNPS","MLC-RH-DIPE-"+per)}
+      <p>Société <b>${esc(soc(d))}</b> — Période <b>${esc(per)}</b> — Effectif déclaré : ${lignes.length}</p>
+      <table class="bull"><thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom</th><th class="right">Assiette</th>
+        <th class="right">PVID (8,4 %)</th><th class="right">Alloc. fam.</th><th class="right">Accident</th></tr></thead>
+      <tbody>${corps||`<tr><td colspan="7">Aucune ligne.</td></tr>`}
+        <tr class="tot"><td colspan="3">TOTAUX</td><td class="right">${fmt(tot.base)}</td><td class="right">${fmt(tot.pvid)}</td>
+        <td class="right">${fmt(tot.pf)}</td><td class="right">${fmt(tot.at)}</td></tr>
+        <tr class="tot"><td colspan="6">TOTAL COTISATIONS CNPS</td><td class="right">${fmt(tot.pvid+tot.pf+tot.at)}</td></tr></tbody></table>
+      ${this.docFoot()}`);
+  },
+  imprimerDSF(annee){
+    const d=this.d, parSal=this.dsfAnnee(annee), ids=Object.keys(parSal);
+    const corps=ids.map(id=>{const s=salById(d,Number(id))||{},p=parSal[id];return `
+      <tr><td>${esc(s.matricule||"?")}</td><td>${esc(s.nom||"")} ${esc(s.prenom||"")}</td><td class="right">${fmt(p.brut)}</td>
+      <td class="right">${fmt(p.irpp)}</td><td class="right">${fmt(p.cac)}</td><td class="right">${fmt(p.cfc)}</td>
+      <td class="right">${fmt(p.rav)}</td><td class="right">${fmt(p.tdl)}</td></tr>`;}).join("");
+    const tot=ids.reduce((a,id)=>{const p=parSal[id];a.brut+=p.brut;a.irpp+=p.irpp;a.cac+=p.cac;a.cfc+=p.cfc;a.rav+=p.rav;a.tdl+=p.tdl;return a;},
+      {brut:0,irpp:0,cac:0,cfc:0,rav:0,tdl:0});
+    this.print(`${this.docHead("DSF — Déclaration Statistique et Fiscale","MLC-RH-DSF-"+annee)}
+      <p>Société <b>${esc(soc(d))}</b> — Exercice <b>${esc(annee)}</b></p>
+      <table class="bull"><thead><tr><th>Matricule</th><th>Nom</th><th class="right">Brut</th><th class="right">IRPP</th>
+        <th class="right">CAC</th><th class="right">CFC</th><th class="right">RAV</th><th class="right">TDL</th></tr></thead>
+      <tbody>${corps||`<tr><td colspan="8">Aucune ligne.</td></tr>`}
+        <tr class="tot"><td colspan="2">TOTAUX ${esc(annee)}</td><td class="right">${fmt(tot.brut)}</td><td class="right">${fmt(tot.irpp)}</td>
+        <td class="right">${fmt(tot.cac)}</td><td class="right">${fmt(tot.cfc)}</td><td class="right">${fmt(tot.rav)}</td><td class="right">${fmt(tot.tdl)}</td></tr></tbody></table>
       ${this.docFoot()}`);
   }
 };
