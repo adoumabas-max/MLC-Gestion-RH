@@ -32,6 +32,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .anyRequest().authenticated())
+            // API sans état : une requête non authentifiée doit renvoyer 401 (et non 403 par défaut).
+            .exceptionHandling(e -> e.authenticationEntryPoint(
+                (req, res, ex) -> res.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED)))
             .addFilterBefore(new JwtAuthFilter(provider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

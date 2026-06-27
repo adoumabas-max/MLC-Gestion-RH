@@ -60,5 +60,12 @@ curl http://localhost:8080/api/v1/salaries -H "Authorization: Bearer <TOKEN>"
   validation `@Valid` du login API.
 - **Robustesse API** : `ApiExceptionHandler` traduit les erreurs (`404/403/400`) en JSON
   cohérent au lieu de 500 opaques.
-- **Tests & CI** : tests de non-régression du moteur de paie (suivi M15) et workflow
-  GitHub Actions (`mvn -B clean verify` sur JDK 17).
+- **Page de login réparée** : `GET /login` est désormais mappé sur `login.html`
+  (`WebConfig`) — la page personnalisée renvoyait auparavant 404.
+- **API 401 vs 403** : une requête API non authentifiée renvoie `401 Unauthorized`
+  (`AuthenticationEntryPoint`) au lieu du `403` par défaut.
+- **Profil `prod`** (`application-prod.yml`) : aucun secret par défaut — le démarrage
+  échoue si `JWT_SECRET` / `DB_PASSWORD` ne sont pas fournis.
+- **Tests & CI** : tests de non-régression du moteur de paie (suivi M15), tests
+  d'intégration des contrôleurs API et web (sécurité, JWT, validation, en-têtes,
+  gestion d'erreurs) et workflow GitHub Actions (`mvn -B clean verify` sur JDK 17).
