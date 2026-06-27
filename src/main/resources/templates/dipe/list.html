@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('DIPE')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('dipe')}"></nav><main>
+  <h1>M07 — CNPS / DIPE</h1><div class="sub">États de cotisations mensuels (PVID, allocations familiales, accident du travail)</div>
+  <table><thead><tr><th>Période</th><th class="right">PVID salarié</th><th class="right">PVID employeur</th>
+    <th class="right">Alloc. familiales</th><th class="right">Accident</th><th class="right">Total CNPS</th></tr></thead>
+    <tbody>
+      <tr th:each="e : ${periodes}"><td th:text="${e.key}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[0],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[1],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[2],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[3],0,'POINT')}"></td>
+        <td class="right" th:text="${#numbers.formatInteger(e.value[0]+e.value[1]+e.value[2]+e.value[3],0,'POINT')}"></td></tr>
+      <tr th:if="${periodes.isEmpty()}"><td colspan="6" style="text-align:center;color:#7a8893">Aucune paie : générez des bulletins (M03).</td></tr>
+    </tbody></table>
+</main></div></body></html>

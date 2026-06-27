@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Discipline')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('discipline')}"></nav><main>
+  <h1>M05 — Discipline (W4)</h1>
+  <div class="sub">Demande d'explication → décision → registre (art. 29 CT) — mise à pied ≤ 8 jours</div>
+  <form class="card" th:action="@{/discipline}" method="post">
+    <div class="row">
+      <div><label>Salarié</label><select name="salarieId">
+        <option th:each="s : ${salaries}" th:value="${s.id}" th:text="${s.matricule} + ' — ' + ${s.nom}"></option></select></div>
+      <div><label>Date des faits</label><input type="date" name="dateFaits"></div>
+    </div>
+    <label>Motif / faits reprochés</label><input name="motif">
+    <label>Réponse du salarié</label><input name="reponse">
+    <label>Sanction</label><select name="sanction">
+      <option>Avertissement écrit</option><option>Blâme</option><option>Mise à pied (≤ 8 jours)</option><option>Licenciement</option></select>
+    <div style="margin-top:12px"><button class="btn or" type="submit">Notifier &amp; enregistrer</button></div>
+  </form>
+  <table><thead><tr><th>Date</th><th>Salarié (id)</th><th>Motif</th><th>Sanction</th></tr></thead>
+    <tbody><tr th:each="d : ${disciplines}"><td th:text="${d.dateFaits}"></td><td th:text="${d.salarieId}"></td>
+      <td th:text="${d.motif}"></td><td th:text="${d.sanction}"></td></tr>
+      <tr th:if="${#lists.isEmpty(disciplines)}"><td colspan="4" style="text-align:center;color:#7a8893">Registre vide.</td></tr></tbody></table>
+</main></div></body></html>

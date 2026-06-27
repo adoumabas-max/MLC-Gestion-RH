@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Embauche')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap">
+  <nav th:replace="~{fragments/layout :: menu('salaries')}"></nav>
+  <main>
+    <h1>W1 — Embauche</h1>
+    <div class="sub">Contrôle SMIG bloquant (≥ <span th:text="${smig}">60000</span> FCFA) — art. 25/28/34 CT</div>
+    <form class="card" th:action="@{/salaries}" th:object="${salarie}" method="post">
+      <div class="row">
+        <div><label>Nom(s)</label><input th:field="*{nom}"><div class="err" th:errors="*{nom}"></div></div>
+        <div><label>Prénom(s)</label><input th:field="*{prenom}"></div>
+      </div>
+      <div class="row">
+        <div><label>Matricule</label><input th:field="*{matricule}"><div class="err" th:errors="*{matricule}"></div></div>
+        <div><label>Matricule CNPS</label><input th:field="*{matCnps}"></div>
+      </div>
+      <div class="row">
+        <div><label>Poste</label><input th:field="*{poste}"></div>
+        <div><label>Catégorie</label><input th:field="*{categorie}"></div>
+      </div>
+      <div class="row">
+        <div><label>Date d'embauche</label><input type="date" th:field="*{embauche}"></div>
+        <div><label>Salaire de base (FCFA)</label><input type="number" th:field="*{salaireBase}"><div class="err" th:errors="*{salaireBase}"></div></div>
+      </div>
+      <input type="hidden" th:field="*{societe}" value="MLC">
+      <div style="margin-top:14px"><button class="btn or" type="submit">Valider l'embauche</button>
+        <a class="btn" th:href="@{/salaries}" style="background:#5b6b79">Annuler</a></div>
+    </form>
+  </main>
+</div>
+</body></html>

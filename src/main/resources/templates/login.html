@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Connexion')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div class="login">
+  <h1>Connexion</h1>
+  <p class="sub">MLC-Gestion-RH — accès réservé</p>
+  <div th:if="${param.error}" class="err">Identifiants invalides.</div>
+  <div th:if="${param.deconnecte}" class="pill ok">Déconnexion réussie.</div>
+  <form th:action="@{/login}" method="post">
+    <label>Identifiant</label><input name="username" autofocus>
+    <label>Mot de passe</label><input type="password" name="password">
+    <div style="margin-top:14px"><button class="btn or" type="submit">Se connecter</button></div>
+  </form>
+  <p class="sub" style="margin-top:16px">Comptes de démonstration : drh/drh123 · paie/paie123 · audit/audit123</p>
+</div>
+</body></html>

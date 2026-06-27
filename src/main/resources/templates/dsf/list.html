@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('DSF')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('dsf')}"></nav><main>
+  <h1>M08 — Fiscal / DSF</h1><div class="sub">Récapitulatif des retenues fiscales (IRPP, CAC, CFC, RAV, TDL)</div>
+  <table><thead><tr><th>Période</th><th class="right">IRPP</th><th class="right">CAC</th>
+    <th class="right">CFC</th><th class="right">RAV</th><th class="right">TDL</th></tr></thead>
+    <tbody><tr th:each="b : ${bulletins}"><td th:text="${b.periode}"></td>
+      <td class="right" th:text="${#numbers.formatInteger(b.irpp,0,'POINT')}"></td>
+      <td class="right" th:text="${#numbers.formatInteger(b.cac,0,'POINT')}"></td>
+      <td class="right" th:text="${#numbers.formatInteger(b.cfcSal,0,'POINT')}"></td>
+      <td class="right" th:text="${#numbers.formatInteger(b.rav,0,'POINT')}"></td>
+      <td class="right" th:text="${#numbers.formatInteger(b.tdl,0,'POINT')}"></td></tr>
+      <tr th:if="${#lists.isEmpty(bulletins)}"><td colspan="6" style="text-align:center;color:#7a8893">Aucune donnée.</td></tr></tbody></table>
+</main></div></body></html>

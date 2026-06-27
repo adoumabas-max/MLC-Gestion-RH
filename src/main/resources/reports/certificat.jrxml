@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+  name="certificat" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+  <parameter name="societe" class="java.lang.String"/><parameter name="salarie" class="java.lang.String"/>
+  <parameter name="matricule" class="java.lang.String"/><parameter name="poste" class="java.lang.String"/>
+  <parameter name="embauche" class="java.lang.String"/><parameter name="dateJour" class="java.lang.String"/>
+  <title><band height="50"><textField><reportElement x="0" y="0" width="555" height="24"/><textElement textAlignment="Center"><font size="14" isBold="true"/></textElement>
+    <textFieldExpression><![CDATA["CERTIFICAT DE TRAVAIL"]]></textFieldExpression></textField></band></title>
+  <detail><band height="140">
+    <textField><reportElement x="0" y="0" width="555" height="40"/>
+      <textFieldExpression><![CDATA["Nous, " + $P{societe} + ", certifions avoir employé " + $P{salarie} + " (matricule " + $P{matricule} + "), en qualité de " + $P{poste} + ", depuis le " + $P{embauche} + "."]]></textFieldExpression></textField>
+    <textField><reportElement x="0" y="46" width="555" height="18"/>
+      <textFieldExpression><![CDATA["Le/La salarié(e) nous quitte libre de tout engagement."]]></textFieldExpression></textField>
+    <textField><reportElement x="0" y="68" width="555" height="14"/><textElement><font size="8"/></textElement>
+      <textFieldExpression><![CDATA["Certificat établi conformément à l'article 39 du Code du travail."]]></textFieldExpression></textField>
+    <textField><reportElement x="300" y="100" width="255" height="16"/><textElement textAlignment="Right"/>
+      <textFieldExpression><![CDATA["Douala, le " + $P{dateJour} + " — La Direction"]]></textFieldExpression></textField>
+  </band></detail>
+  <pageFooter><band height="20"><textField><reportElement x="0" y="0" width="555" height="14"/><textElement textAlignment="Center"><font size="8"/></textElement>
+    <textFieldExpression><![CDATA["MLC-RH-CERT — Document interne SMQ — Mercure Logistics SARL"]]></textFieldExpression></textField></band></pageFooter>
+</jasperReport>

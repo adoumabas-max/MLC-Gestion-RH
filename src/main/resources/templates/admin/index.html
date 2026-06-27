@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head th:replace="~{fragments/layout :: head('Administration')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap"><nav th:replace="~{fragments/layout :: menu('admin')}"></nav><main>
+  <h1>M14 — Administration &amp; sécurité</h1>
+  <div class="card"><b>Rôles :</b> DRH · Gestionnaire de paie · Manager · Salarié (libre-service) · Auditeur (lecture seule).
+    <span style="color:#7a8893"> Habilitations par <code>@PreAuthorize</code> (moindre privilège). Mots de passe BCrypt.</span></div>
+  <h2 style="color:#14506B">Journal d'audit</h2>
+  <table><thead><tr><th>Horodatage</th><th>Acteur</th><th>Action</th><th>Détail</th></tr></thead>
+    <tbody><tr th:each="a : ${journal}"><td th:text="${a.horodatage}"></td><td th:text="${a.acteur}"></td>
+      <td th:text="${a.action}"></td><td th:text="${a.detail}"></td></tr>
+      <tr th:if="${#lists.isEmpty(journal)}"><td colspan="4" style="text-align:center;color:#7a8893">Journal vide.</td></tr></tbody></table>
+</main></div></body></html>

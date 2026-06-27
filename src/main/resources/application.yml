@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: mlc-gestion-rh
+  datasource:
+    url: jdbc:mysql://localhost:3306/mlc_rh?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Africa/Douala&allowPublicKeyRetrieval=true&useSSL=false
+    username: mlc_rh
+    password: ${DB_PASSWORD:mlc_rh}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # le schéma est géré par Flyway ; 'update' en dev initial
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:mlc-rh-secret-douala-bangui-ndjamena-2026-cle}
+    expiration-min: 120
+
+logging:
+  level:
+    org.springframework.security: INFO

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="fr">
+<head th:replace="~{fragments/layout :: head('Paie')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: topbar}"></div>
+<div id="wrap">
+  <nav th:replace="~{fragments/layout :: menu('paie')}"></nav>
+  <main>
+    <h1>M03 — Paie &amp; bulletins (W2)</h1>
+    <div class="sub">Moteur de paie — CNPS, IRPP, CAC, CFC, RAV, TDL, FNE</div>
+
+    <form class="card" th:action="@{/paie/calculer}" method="post">
+      <div class="row">
+        <div><label>Salarié</label>
+          <select name="salarieId">
+            <option th:each="s : ${salaries}" th:value="${s.id}" th:text="${s.matricule} + ' — ' + ${s.nom}"></option>
+          </select></div>
+        <div><label>Période (AAAA-MM)</label><input name="periode" placeholder="2026-06"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn" type="submit">Calculer</button></div>
+    </form>
+
+    <div class="card" th:if="${r != null}">
+      <h2 style="color:#14506B" th:text="'Résultat — ' + ${salarie.nom} + ' (' + ${periode} + ')'">Résultat</h2>
+      <table>
+        <tr><th>Salaire brut taxable</th><td class="right" th:text="${#numbers.formatInteger(r.sbt,0,'POINT')}"></td>
+            <th>PVID salarié</th><td class="right" th:text="${#numbers.formatInteger(r.pvidSal,0,'POINT')}"></td></tr>
+        <tr><th>IRPP</th><td class="right" th:text="${#numbers.formatInteger(r.irpp,0,'POINT')}"></td>
+            <th>CAC</th><td class="right" th:text="${#numbers.formatInteger(r.cac,0,'POINT')}"></td></tr>
+        <tr><th>CFC / RAV / TDL</th><td class="right" th:text="${r.cfcSal} + ' / ' + ${r.rav} + ' / ' + ${r.tdl}"></td>
+            <th>Total retenues</th><td class="right" th:text="${#numbers.formatInteger(r.totalRetenues,0,'POINT')}"></td></tr>
+        <tr><th>NET À PAYER</th><td class="right" th:text="${#numbers.formatInteger(r.netAPayer,0,'POINT')}"></td>
+            <th>Coût employeur</th><td class="right" th:text="${#numbers.formatInteger(r.coutEmployeur,0,'POINT')}"></td></tr>
+      </table>
+      <form th:action="@{/paie/valider}" method="post" style="margin-top:12px" sec:authorize="hasAnyRole('DRH','PAIE')">
+        <input type="hidden" name="salarieId" th:value="${salarie.id}">
+        <input type="hidden" name="periode" th:value="${periode}">
+        <button class="btn or" type="submit">Valider &amp; enregistrer le bulletin</button>
+      </form>
+    </div>
+
+    <h2 style="color:#14506B">Bulletins émis</h2>
+    <table>
+      <thead><tr><th>Période</th><th class="right">Brut</th><th class="right">Net</th><th class="right">Coût employeur</th></tr></thead>
+      <tbody>
+        <tr th:each="b : ${bulletins}">
+          <td th:text="${b.periode}"></td>
+          <td class="right" th:text="${#numbers.formatInteger(b.sbt,0,'POINT')}"></td>
+          <td class="right" th:text="${#numbers.formatInteger(b.netAPayer,0,'POINT')}"></td>
+          <td class="right" th:text="${#numbers.formatInteger(b.coutEmployeur,0,'POINT')}"></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(bulletins)}"><td colspan="4" style="text-align:center;color:#7a8893">Aucun bulletin.</td></tr>
+      </tbody>
+    </table>
+  </main>
+</div>
+</body></html>

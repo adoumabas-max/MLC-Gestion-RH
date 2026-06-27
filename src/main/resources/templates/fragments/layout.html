@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="fr">
+<head th:fragment="head(titre)">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'MLC-Gestion-RH — ' + ${titre}">MLC-Gestion-RH</title>
+  <link rel="stylesheet" th:href="@{/css/mlc.css}">
+</head>
+<body>
+<div th:fragment="topbar">
+  <div id="top">
+    <div class="logo">MERCURE LOGISTICS<small>Transit &amp; Logistique – Douala</small></div>
+    <div class="spacer"></div>
+    <span sec:authorize="isAuthenticated()" style="font-size:12px;color:#9fc0dd"
+          th:text="'Connecté : ' + ${#authentication?.name}">Connecté</span>
+    <a th:href="@{/logout}" sec:authorize="isAuthenticated()">Déconnexion</a>
+  </div>
+</div>
+<nav th:fragment="menu(actif)" id="side">
+  <div class="cat">Pilotage</div>
+  <a th:href="@{/}" th:classappend="${actif=='dashboard'}?'on'">M09 — Tableau de bord</a>
+  <div class="cat">Cycle du salarié</div>
+  <a th:href="@{/salaries}" th:classappend="${actif=='salaries'}?'on'">M01 — Dossiers salariés</a>
+  <a th:href="@{/conges}" th:classappend="${actif=='conges'}?'on'">M04 — Congés (W3)</a>
+  <a th:href="@{/discipline}" th:classappend="${actif=='discipline'}?'on'">M05 — Discipline (W4)</a>
+  <a th:href="@{/departs}" th:classappend="${actif=='departs'}?'on'">M06 — Départs (W5)</a>
+  <div class="cat">Paie &amp; déclarations</div>
+  <a th:href="@{/paie}" th:classappend="${actif=='paie'}?'on'">M03 — Paie &amp; bulletins (W2)</a>
+  <a th:href="@{/dipe}" th:classappend="${actif=='dipe'}?'on'">M07 — CNPS / DIPE</a>
+  <a th:href="@{/dsf}" th:classappend="${actif=='dsf'}?'on'">M08 — Fiscal / DSF</a>
+  <div class="cat">Référentiels &amp; docs</div>
+  <a th:href="@{/postes}" th:classappend="${actif=='postes'}?'on'">M11 — Postes</a>
+  <a th:href="@{/documents}" th:classappend="${actif=='documents'}?'on'">M10 — Documents</a>
+  <div class="cat">Système</div>
+  <a th:href="@{/admin}" th:classappend="${actif=='admin'}?'on'">M14 — Administration</a>
+  <a th:href="@{/params}" th:classappend="${actif=='params'}?'on'">M15 — Paramétrage</a>
+</nav>
+</body></html>
