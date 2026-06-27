@@ -12,6 +12,7 @@
       <option th:if="${annees.isEmpty()}" th:value="${anneeSel}" th:text="${anneeSel}" selected></option>
       <option th:each="a : ${annees}" th:value="${a}" th:text="${a}" th:selected="${a==anneeSel}"></option>
     </select>
+    <a class="btn" style="margin-left:8px" th:href="@{'/dsf/' + ${anneeSel} + '.pdf'}" target="_blank">Éditer la DSF (PDF)</a>
   </p>
 
   <table><thead><tr><th>Matricule</th><th>Nom</th><th class="right">Mois</th><th class="right">Brut annuel</th>

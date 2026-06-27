@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -68,5 +69,27 @@ class DeclarationWebTest {
         mvc.perform(get("/dsf").param("annee", "2026")).andExpect(status().isOk())
                 .andExpect(view().name("dsf/list"))
                 .andExpect(content().string(containsString("MLC-001")));
+    }
+
+    @Test
+    @WithMockUser(roles = "DRH")
+    void dipe_pdf_estGenere() throws Exception {
+        byte[] body = mvc.perform(get("/dipe/2026-06.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertTrue(body.length > 800, "le PDF DIPE doit avoir un contenu");
+        assertEquals("%PDF", new String(body, 0, 4), "en-tête PDF attendue");
+    }
+
+    @Test
+    @WithMockUser(roles = "DRH")
+    void dsf_pdf_estGenere() throws Exception {
+        byte[] body = mvc.perform(get("/dsf/2026.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertTrue(body.length > 800, "le PDF DSF doit avoir un contenu");
+        assertEquals("%PDF", new String(body, 0, 4), "en-tête PDF attendue");
     }
 }

@@ -24,7 +24,8 @@
   <h3 th:if="${periodeSel != null}" style="margin-top:22px">DIPE nominatif — période
     <select onchange="location.href='/dipe?periode='+this.value">
       <option th:each="p : ${listePeriodes}" th:value="${p}" th:text="${p}" th:selected="${p==periodeSel}"></option>
-    </select></h3>
+    </select>
+    <a class="btn" style="margin-left:8px" th:href="@{'/dipe/' + ${periodeSel} + '.pdf'}" target="_blank">Éditer le DIPE (PDF)</a></h3>
   <table th:if="${periodeSel != null}">
     <thead><tr><th>Matricule</th><th>N° CNPS</th><th>Nom</th><th class="right">Assiette</th>
       <th class="right">PVID sal.</th><th class="right">PVID emp.</th><th class="right">Alloc. fam.</th>

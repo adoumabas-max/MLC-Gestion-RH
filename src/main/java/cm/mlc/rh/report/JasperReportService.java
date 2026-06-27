@@ -3,11 +3,13 @@ package cm.mlc.rh.report;
 import cm.mlc.rh.domain.Salarie;
 import cm.mlc.rh.service.PaieResult;
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.data.JRMapCollectionDataSource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,9 +18,19 @@ import java.util.Map;
 public class JasperReportService {
 
     private byte[] generer(String modele, Map<String, Object> params) throws JRException {
+        return generer(modele, params, new JREmptyDataSource());
+    }
+
+    /** Édition tabulaire : une ligne par entrée de la collection (clés = champs $F{...}). */
+    private byte[] generer(String modele, Map<String, Object> params,
+                           Collection<Map<String, ?>> lignes) throws JRException {
+        return generer(modele, params, new JRMapCollectionDataSource(lignes));
+    }
+
+    private byte[] generer(String modele, Map<String, Object> params, JRDataSource ds) throws JRException {
         try (InputStream is = new ClassPathResource("reports/" + modele).getInputStream()) {
             JasperReport report = JasperCompileManager.compileReport(is);
-            JasperPrint print = JasperFillManager.fillReport(report, params, new JREmptyDataSource());
+            JasperPrint print = JasperFillManager.fillReport(report, params, ds);
             return JasperExportManager.exportReportToPdf(print);
         } catch (JRException e) { throw e; }
         catch (Exception e) { throw new JRException(e); }
@@ -46,13 +58,20 @@ public class JasperReportService {
         return generer("certificat.jrxml", p);
     }
 
-    public byte[] dipePdf(String periode, long pvidSal, long pvidPat, long allocFam, long accident) throws JRException {
-        Map<String, Object> p = new HashMap<>();
+    /** DIPE nominatif : une ligne par salarié + totaux. */
+    public byte[] dipePdf(String periode, Collection<Map<String, ?>> lignes,
+                          Map<String, Object> totaux) throws JRException {
+        Map<String, Object> p = new HashMap<>(totaux);
         p.put("societe", "MERCURE LOGISTICS SARL"); p.put("periode", periode);
-        p.put("pvidSal", pvidSal); p.put("pvidPat", pvidPat);
-        p.put("allocFam", allocFam); p.put("accident", accident);
-        p.put("total", pvidSal + pvidPat + allocFam + accident);
-        return generer("dipe.jrxml", p);
+        return generer("dipe.jrxml", p, lignes);
+    }
+
+    /** DSF annuelle : une ligne par salarié + totaux. */
+    public byte[] dsfPdf(String annee, Collection<Map<String, ?>> lignes,
+                         Map<String, Object> totaux) throws JRException {
+        Map<String, Object> p = new HashMap<>(totaux);
+        p.put("societe", "MERCURE LOGISTICS SARL"); p.put("annee", annee);
+        return generer("dsf.jrxml", p, lignes);
     }
 
     private Map<String, Object> base(Salarie s) {
