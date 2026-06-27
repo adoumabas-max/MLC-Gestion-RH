@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<!--
+  MLC-Gestion-RH — Application RH de Mercure Logistics SARL (Transit & Logistique, Douala)
+  Variante A : application MONO-FICHIER, autonome et hors-ligne (HTML + CSS + JS natif).
+  Cahier des charges MLC-RH-CDC-001 v1.0 — ISO 9001:2015 + Code du travail camerounais (Loi n° 92/007).
+
+  Moteur de paie STRICTEMENT identique à la variante B (Spring Boot) : même cas de référence
+  bloquant — base 350 000 => net 302 792 / coût employeur 406 700 (bouton « Auto-test paie », M15).
+  Persistance : localStorage (clé "mlc_rh"), avec export/import JSON et repli mémoire.
+  Aucune dépendance externe, aucun CDN, aucun appel réseau.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MLC-Gestion-RH — Mercure Logistics</title>
+<style>
+  /* ===== Identité visuelle MLC (§3.5) ===== */
+  :root{
+    --marine:#0A1F33; --marine2:#1F4E79; --petrole:#14506B; --or:#B8860B;
+    --clair:#F2F2F2; --blanc:#fff; --gris:#6b7280; --rouge:#b91c1c; --vert:#15803d;
+    --bord:#d8dee6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--clair);color:#1a2330}
+  a{color:var(--marine2)}
+  /* Barre supérieure */
+  .topbar{background:var(--marine);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 18px;position:sticky;top:0;z-index:20}
+  .logo{font-weight:800;letter-spacing:1px;font-size:18px;line-height:1}
+  .logo small{display:block;font-weight:400;font-size:11px;color:#c9d6e5;letter-spacing:.5px}
+  .topbar .spacer{flex:1}
+  .topbar select,.topbar button{font:inherit}
+  .selsoc{background:var(--marine2);color:#fff;border:1px solid #335f8a;border-radius:6px;padding:6px 10px}
+  .user{font-size:13px;color:#c9d6e5}
+  /* Mise en page */
+  .layout{display:flex;min-height:calc(100vh - 49px)}
+  .side{width:230px;background:#0d2742;color:#cdd9e7;padding:8px 0;flex-shrink:0}
+  .side a{display:block;padding:9px 16px;color:#cdd9e7;text-decoration:none;font-size:13.5px;border-left:3px solid transparent;cursor:pointer}
+  .side a:hover{background:#143358}
+  .side a.actif{background:var(--marine2);color:#fff;border-left-color:var(--or);font-weight:600}
+  .side .grp{font-size:11px;text-transform:uppercase;color:#7e98b4;padding:12px 16px 4px;letter-spacing:.6px}
+  .main{flex:1;padding:20px 26px;overflow:auto}
+  h1{font-size:21px;margin:0 0 4px;color:var(--marine)}
+  .sub{color:var(--gris);font-size:13px;margin-bottom:16px}
+  /* Cartes / tableaux */
+  .card{background:#fff;border:1px solid var(--bord);border-radius:10px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(10,31,51,.04)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eceff3}
+  thead th{background:var(--marine);color:#fff;font-weight:600}
+  tbody tr:hover{background:#f7f9fc}
+  .right{text-align:right}
+  /* Formulaires */
+  label{display:block;font-size:12.5px;color:#33414f;margin:8px 0 3px;font-weight:600}
+  input,select,textarea{width:100%;padding:8px 9px;border:1px solid #c7d0db;border-radius:6px;font:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:2px solid #b9cbe0;border-color:var(--marine2)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 16px}
+  .btn{display:inline-block;background:var(--marine2);color:#fff;border:none;border-radius:7px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--marine)}
+  .btn.sec{background:#e7edf4;color:var(--marine)}
+  .btn.or{background:var(--or)}
+  .btn.danger{background:var(--rouge)}
+  .btn.sm{padding:5px 10px;font-size:12.5px}
+  .row-actions{display:flex;gap:6px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .pill.ok{background:#dcfce7;color:var(--vert)} .pill.no{background:#fee2e2;color:var(--rouge)}
+  .pill.info{background:#e0e7ff;color:#3730a3}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .kpi{background:linear-gradient(135deg,var(--marine),var(--petrole));color:#fff;border-radius:12px;padding:16px}
+  .kpi .v{font-size:26px;font-weight:800;margin-top:6px}
+  .kpi .l{font-size:12px;color:#cfe0ee;text-transform:uppercase;letter-spacing:.5px}
+  .msg{padding:10px 14px;border-radius:8px;margin:8px 0;font-size:13.5px}
+  .msg.err{background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5}
+  .msg.ok{background:#dcfce7;color:#14532d;border:1px solid #86efac}
+  /* Wizard */
+  .steps{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .steps .s{flex:1;min-width:120px;text-align:center;padding:8px;border-radius:8px;background:#e7edf4;color:#5b6b7c;font-size:12.5px;font-weight:600}
+  .steps .s.on{background:var(--marine2);color:#fff}
+  .steps .s.done{background:#cfe3d4;color:#14532d}
+  .bull{font-size:13px}
+  .bull td{padding:5px 8px}
+  .bull .tot{font-weight:800;background:#f1f5fb}
+  .muted{color:var(--gris)}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.twocol{grid-template-columns:1fr}.side{width:64px}.side a{font-size:0;padding:12px 6px}.side .grp{display:none}}
+  /* Impression : on isole #print-area */
+  #print-area{display:none}
+  @media print{
+    body *{visibility:hidden}
+    #print-area,#print-area *{visibility:visible}
+    #print-area{display:block;position:absolute;left:0;top:0;width:100%;padding:24px}
+    .noprint{display:none!important}
+  }
+  .doc{max-width:760px;margin:0 auto;font-size:13px;color:#111}
+  .doc .head{display:flex;justify-content:space-between;border-bottom:2px solid var(--marine);padding-bottom:8px;margin-bottom:14px}
+  .doc h2{color:var(--marine);margin:0}
+  .doc .foot{margin-top:26px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#555;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="topbar noprint">
+  <div class="logo">MERCURE LOGISTICS<small>Transit &amp; Logistique – Douala</small></div>
+  <span class="spacer"></span>
+  <label style="margin:0;color:#cfe0ee;font-weight:600;font-size:12px">Société&nbsp;</label>
+  <select id="selSoc" class="selsoc" onchange="App.changeSoc(this.value)"></select>
+  <span class="user" id="userBox"></span>
+</div>
+<div class="layout">
+  <nav class="side noprint" id="menu"></nav>
+  <main class="main" id="view"></main>
+</div>
+<div id="print-area"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   1) PARAMÈTRES LÉGAUX (M15 — source unique de vérité). Identiques à la variante B.
+   ============================================================================ */
+const PARAMS = {
+  smig: 60000,                 // SMIG mensuel (contrôle bloquant) — Art. SMIG
+  plafondCnps: 750000,         // plafond assiette PVID
+  pvidSal: 0.042, pvidPat: 0.042,
+  allocFam: 0.07,              // allocations familiales (employeur)
+  accidentTravail: 0.025,      // accident du travail (employeur)
+  cfcSal: 0.01, cfcPat: 0.015, // Crédit Foncier
+  fne: 0.01,                   // Fonds National de l'Emploi
+  cac: 0.10,                   // centimes additionnels communaux (10% IRPP)
+  partFraisPro: 0.70,          // abattement frais pro 30% (on conserve 70%)
+  abattForfaitIRPP: 41667,     // 500 000 / 12
+  // Barème IRPP mensuel progressif (Art. barème annuel / 12)
+  baremeIRPP: [ {plafond:166667,taux:0.10},{plafond:250000,taux:0.15},
+                {plafond:416667,taux:0.25},{plafond:Infinity,taux:0.35} ],
+  // RAV — redevance audiovisuelle (mensuel, par tranche de SBT)
+  baremeRav: [ {max:50000,v:0},{max:100000,v:750},{max:200000,v:1950},{max:300000,v:3250},
+               {max:400000,v:4550},{max:500000,v:5850},{max:600000,v:7150},{max:700000,v:8450},
+               {max:800000,v:9750},{max:900000,v:11050},{max:1000000,v:12350},{max:Infinity,v:13000} ],
+  // TDL — taxe de développement local (mensuel, calibré sur le cas de référence)
+  baremeTdl: [ {max:100000,v:500},{max:200000,v:1000},{max:300000,v:1500},{max:400000,v:2500},
+               {max:500000,v:3000},{max:700000,v:4000},{max:Infinity,v:5000} ],
+  // Indemnité de licenciement (Art. 37) : % du salaire mensuel moyen, par année d'ancienneté
+  indemnite: [ {maxAns:5,taux:0.20},{maxAns:10,taux:0.25},{maxAns:15,taux:0.30},{maxAns:Infinity,taux:0.35} ]
+};
+const SOCIETES = ["MLC","MLC RCA","TRANSEXPRESS"];
+
+/* ============================================================================
+   2) MOTEUR DE PAIE — algorithme déterministe (§3.3). Arrondi entier (FCFA).
+   ============================================================================ */
+function bareme(tab, x){ for(const p of tab){ if(x<=p.max) return p.v; } return 0; }
+function baremeIRPP(base){
+  let irpp=0, prev=0;
+  for(const t of PARAMS.baremeIRPP){
+    if(base>prev){ irpp += (Math.min(base,t.plafond)-prev)*t.taux; prev=t.plafond; } else break;
+  }
+  return Math.round(irpp);
+}
+function calculePaie(salaireBase, primesImposables=0, primesNonImposables=0, majorationsHS=0){
+  const P=PARAMS;
+  const sbt = salaireBase + primesImposables + majorationsHS;          // salaire brut taxable
+  // --- Retenues salariales ---
+  const pvidSal = Math.round(P.pvidSal*Math.min(sbt,P.plafondCnps));    // Art. CNPS
+  const baseIRPP = Math.max(0, Math.round(sbt*P.partFraisPro) - pvidSal - P.abattForfaitIRPP);
+  const irpp = baremeIRPP(baseIRPP);
+  const cac  = Math.round(P.cac*irpp);
+  const cfcSal = Math.round(P.cfcSal*sbt);
+  const rav = bareme(P.baremeRav, sbt);
+  const tdl = bareme(P.baremeTdl, sbt);
+  const totalRetenues = pvidSal+irpp+cac+cfcSal+rav+tdl;
+  const netAPayer = sbt + primesNonImposables - totalRetenues;
+  // --- Charges patronales ---
+  const pvidPat = Math.round(P.pvidPat*Math.min(sbt,P.plafondCnps));
+  const allocFam = Math.round(P.allocFam*sbt);
+  const accident = Math.round(P.accidentTravail*sbt);
+  const cfcPat = Math.round(P.cfcPat*sbt);
+  const fne = Math.round(P.fne*sbt);
+  const totalPatronal = pvidPat+allocFam+accident+cfcPat+fne;
+  const coutEmployeur = sbt + totalPatronal;
+  return {sbt,pvidSal,irpp,cac,cfcSal,rav,tdl,totalRetenues,netAPayer,
+          pvidPat,allocFam,accident,cfcPat,fne,totalPatronal,coutEmployeur};
+}
+function salaireValide(s){ return s>=PARAMS.smig; }
+/** Test d'acceptation bloquant : base 350 000 => net 302 792 / coût 406 700. */
+function autoTestPaie(){
+  const r=calculePaie(350000);
+  const att={pvidSal:14700,irpp:19962,cac:1996,cfcSal:3500,rav:4550,tdl:2500,
+             totalRetenues:47208,netAPayer:302792,pvidPat:14700,allocFam:24500,
+             accident:8750,cfcPat:5250,fne:3500,totalPatronal:56700,coutEmployeur:406700};
+  const ecarts=[];
+  for(const k in att){ if(r[k]!==att[k]) ecarts.push(`${k}: obtenu ${r[k]}, attendu ${att[k]}`); }
+  return {ok:ecarts.length===0, ecarts, r, att};
+}
+
+/* ============================================================================
+   3) PERSISTANCE — localStorage (clé "mlc_rh") + repli mémoire + export/import.
+   ============================================================================ */
+const Store = (function(){
+  const KEY="mlc_rh";
+  let mem=null; // repli si localStorage indisponible
+  function dispo(){ try{ const k="__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return true; }catch(e){ return false; } }
+  const useLS=dispo();
+  function vide(){ return {salaries:[],contrats:[],bulletins:[],conges:[],disciplines:[],departs:[],
+                           postes:[],avances:[],temps:[],audit:[],utilisateurs:[],seq:{},params:null,socActive:"MLC"}; }
+  function read(){
+    if(useLS){ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }
+    return mem;
+  }
+  function write(d){ if(useLS) localStorage.setItem(KEY,JSON.stringify(d)); else mem=d; }
+  function init(){ let d=read(); if(!d){ d=seed(); write(d); } if(!d.params) d.params=null; return d; }
+  function next(d,coll){ d.seq[coll]=(d.seq[coll]||0)+1; return d.seq[coll]; }
+  return {KEY,read,write,init,next,vide,useLS};
+})();
+
+/* Données de démonstration (seed léger, multi-sociétés) */
+function seed(){
+  const d=Store.vide();
+  d.postes=[
+    {id:1,societe:"MLC",intitule:"Déclarant en douane",service:"Exploitation",categorie:"V"},
+    {id:2,societe:"MLC",intitule:"Chauffeur corridor",service:"Transport",categorie:"III"},
+    {id:3,societe:"MLC",intitule:"Responsable des opérations",service:"Direction",categorie:"IX"}
+  ];
+  d.seq.postes=3;
+  d.salaries=[{id:1,societe:"MLC",matricule:"MLC-001",matCnps:"CM-100200",nom:"NGUE",prenom:"Paul",
+    naissance:"1990-04-12",sexe:"M",nationalite:"Camerounaise",situation:"Marié",enfants:2,
+    poste:"Déclarant en douane",service:"Exploitation",categorie:"V",embauche:"2025-02-01",
+    salaireBase:350000,statut:"Actif",tel:"690000000"}];
+  d.seq.salaries=1;
+  d.contrats=[{id:1,societe:"MLC",salarieId:1,type:"CDI",debut:"2025-02-01",fin:"",essaiMois:3,salaire:350000,statut:"En cours"}];
+  d.seq.contrats=1;
+  d.utilisateurs=[
+    {login:"drh",role:"DRH",societe:"MLC"},{login:"paie",role:"PAIE",societe:"MLC"},
+    {login:"audit",role:"AUDITEUR",societe:"MLC"}];
+  d.audit=[{id:1,horodatage:new Date().toISOString(),acteur:"system",action:"Initialisation",
+    detail:"Amorçage des données de démonstration",societe:"MLC"}];
+  d.seq.audit=1;
+  return d;
+}
+
+/* ============================================================================
+   4) HELPERS
+   ============================================================================ */
+const fmt = n => (n==null||isNaN(n))?"0":Math.round(n).toLocaleString("fr-FR");
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function soc(d){ return d.socActive||"MLC"; }
+function bySoc(arr,d){ return (arr||[]).filter(x=>x.societe===soc(d)); }
+function salById(d,id){ return d.salaries.find(s=>s.id===Number(id)); }
+function audit(d,action,detail){
+  const id=Store.next(d,"audit");
+  d.audit.unshift({id,horodatage:new Date().toISOString(),acteur:(App.user&&App.user.login)||"drh",
+    action,detail,societe:soc(d)});
+}
+function moisEntre(dateISO){
+  if(!dateISO) return 0;
+  const a=new Date(dateISO), b=new Date();
+  return (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth()) - (b.getDate()<a.getDate()?1:0);
+}
+
+/* ============================================================================
+   5) APPLICATION — routeur, menu, modules, wizards
+   ============================================================================ */
+const App = {
+  d:null, route:"M09", user:{login:"drh",role:"DRH"},
+  wiz:null, // état courant d'un wizard
+
+  start(){
+    this.d=Store.init();
+    if(this.d.params){ Object.assign(PARAMS,this.d.params); }
+    // sélecteur société
+    const sel=document.getElementById("selSoc");
+    sel.innerHTML=SOCIETES.map(s=>`<option ${s===soc(this.d)?"selected":""}>${s}</option>`).join("");
+    document.getElementById("userBox").textContent=`Connecté : ${this.user.login} (${this.user.role})`;
+    this.renderMenu();
+    this.go(this.route);
+  },
+  save(){ Store.write(this.d); },
+  changeSoc(s){ this.d.socActive=s; this.save(); this.go(this.route); },
+
+  MODULES:[
+    {g:"Pilotage"},
+    {c:"M09",t:"Tableau de bord"},
+    {g:"Personnel"},
+    {c:"M01",t:"Dossiers salariés"},
+    {c:"M02",t:"Contrats"},
+    {c:"M11",t:"Organisation & postes"},
+    {g:"Cycle de vie"},
+    {c:"M03",t:"Paie (W2)"},
+    {c:"M04",t:"Congés (W3)"},
+    {c:"M05",t:"Discipline (W4)"},
+    {c:"M06",t:"Départs (W5)"},
+    {g:"Déclarations"},
+    {c:"M07",t:"CNPS / DIPE"},
+    {c:"M08",t:"Fiscal / DSF"},
+    {g:"Autres"},
+    {c:"M10",t:"Documents"},
+    {c:"M12",t:"Temps de travail"},
+    {c:"M13",t:"Avances & prêts"},
+    {c:"M14",t:"Administration"},
+    {c:"M15",t:"Paramétrage légal"}
+  ],
+  renderMenu(){
+    document.getElementById("menu").innerHTML=this.MODULES.map(m=>
+      m.g?`<div class="grp">${m.g}</div>`
+         :`<a data-c="${m.c}" class="${m.c===this.route?'actif':''}" onclick="App.go('${m.c}')">${m.t}</a>`
+    ).join("");
+  },
+  go(c){ this.route=c; this.wiz=null; this.renderMenu(); (this["view_"+c]||this.view_todo).call(this); },
+  set(html){ document.getElementById("view").innerHTML=html; },
+
+  /* ---------- M09 Tableau de bord ---------- */
+  view_M09(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif");
+    const masse=actifs.reduce((a,s)=>a+(s.salaireBase||0),0);
+    const cout=actifs.reduce((a,s)=>a+calculePaie(s.salaireBase||0).coutEmployeur,0);
+    const nbBul=bySoc(d.bulletins,d).length;
+    const t=autoTestPaie();
+    this.set(`
+      <h1>Tableau de bord</h1><div class="sub">Société ${esc(soc(d))} — synthèse RH</div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Effectif actif</div><div class="v">${actifs.length}</div></div>
+        <div class="kpi"><div class="l">Masse salariale (brut)</div><div class="v">${fmt(masse)}</div></div>
+        <div class="kpi"><div class="l">Coût employeur estimé</div><div class="v">${fmt(cout)}</div></div>
+        <div class="kpi"><div class="l">Bulletins validés</div><div class="v">${nbBul}</div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <b>Contrôle de conformité du moteur de paie</b>
+        <p class="bull">Cas de référence client (base 350 000) :
+          ${t.ok?`<span class="pill ok">✅ Conforme</span> net 302 792 / coût 406 700`
+                :`<span class="pill no">❌ Non conforme</span> ${esc(t.ecarts.join(' ; '))}`}</p>
+      </div>`);
+  },
+
+  /* ---------- M01 Dossiers salariés ---------- */
+  view_M01(){
+    const d=this.d, list=bySoc(d.salaries,d);
+    this.set(`
+      <h1>Dossiers salariés</h1><div class="sub">M01 — matricule interne + CNPS (${esc(soc(d))})</div>
+      <div class="card noprint">
+        <button class="btn" onclick="App.wizEmbauche()">➕ Nouvelle embauche (W1)</button>
+      </div>
+      <div class="card">
+        <table><thead><tr><th>Matricule</th><th>Nom & prénom</th><th>Poste</th><th>Catégorie</th>
+          <th class="right">Salaire base</th><th>Statut</th><th class="noprint"></th></tr></thead>
+        <tbody>${list.length?list.map(s=>`
+          <tr><td>${esc(s.matricule)}</td><td>${esc(s.nom)} ${esc(s.prenom||"")}</td>
+            <td>${esc(s.poste||"")}</td><td>${esc(s.categorie||"")}</td>
+            <td class="right">${fmt(s.salaireBase)}</td>
+            <td><span class="pill ${s.statut==="Actif"?"ok":"no"}">${esc(s.statut)}</span></td>
+            <td class="noprint row-actions">
+              <button class="btn sec sm" onclick="App.go('M03');" title="Paie">Paie</button>
+              <button class="btn danger sm" onclick="App.delSal(${s.id})">Suppr.</button></td></tr>`).join("")
+          :`<tr><td colspan="7" class="muted">Aucun salarié pour cette société.</td></tr>`}</tbody></table>
+      </div>`);
+  },
+  delSal(id){ const d=this.d; const s=salById(d,id); if(!s) return;
+    if(!confirm(`Supprimer ${s.nom} ${s.prenom||""} ?`)) return;
+    d.salaries=d.salaries.filter(x=>x.id!==id); audit(d,"Suppression salarié",s.matricule); this.save(); this.go("M01"); },
+
+  /* ---------- W1 Embauche (6 étapes condensées en un formulaire validé) ---------- */
+  wizEmbauche(){
+    const d=this.d;
+    this.set(`
+      <h1>W1 — Embauche</h1><div class="sub">Identité → poste → contrat (Art. 25/28) → essai (Art. 34) → CNPS → édition</div>
+      <div class="steps">
+        <div class="s on">1. Identité</div><div class="s on">2. Poste</div><div class="s on">3. Contrat</div>
+        <div class="s on">4. Essai</div><div class="s on">5. CNPS</div><div class="s">6. Contrat PDF</div></div>
+      <div id="w1msg"></div>
+      <div class="card"><div class="grid">
+        <div><label>Matricule interne *</label><input id="e_mat" value="MLC-${String((d.seq.salaries||0)+1).padStart(3,'0')}"></div>
+        <div><label>Matricule CNPS</label><input id="e_cnps"></div>
+        <div><label>Nom *</label><input id="e_nom"></div>
+        <div><label>Prénom</label><input id="e_pre"></div>
+        <div><label>Date de naissance</label><input id="e_nais" type="date"></div>
+        <div><label>Sexe</label><select id="e_sexe"><option>M</option><option>F</option></select></div>
+        <div><label>Situation familiale</label><select id="e_sit"><option>Célibataire</option><option>Marié</option><option>Divorcé</option><option>Veuf</option></select></div>
+        <div><label>Enfants</label><input id="e_enf" type="number" value="0" min="0"></div>
+        <div><label>Poste</label><select id="e_poste">${bySoc(d.postes,d).map(p=>`<option>${esc(p.intitule)}</option>`).join("")||'<option value="">(aucun poste)</option>'}</select></div>
+        <div><label>Catégorie</label><input id="e_cat" value="V"></div>
+        <div><label>Date d'embauche</label><input id="e_emb" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div><label>Type de contrat</label><select id="e_type"><option>CDI</option><option>CDD</option></select></div>
+        <div><label>Période d'essai (mois) — Art. 34</label><input id="e_essai" type="number" value="3" min="0"></div>
+        <div><label>Salaire de base (FCFA) *</label><input id="e_sal" type="number" value="350000"></div>
+        <div><label>Téléphone</label><input id="e_tel"></div>
+      </div>
+      <div style="margin-top:14px" class="row-actions">
+        <button class="btn" onclick="App.w1Save()">Valider l'embauche &amp; éditer le contrat</button>
+        <button class="btn sec" onclick="App.go('M01')">Annuler</button></div></div>`);
+  },
+  w1Save(){
+    const d=this.d, g=id=>document.getElementById(id).value.trim();
+    const nom=g("e_nom"), sal=Number(g("e_sal")), mat=g("e_mat");
+    const m=document.getElementById("w1msg");
+    if(!nom||!mat){ m.innerHTML=`<div class="msg err">Matricule et nom sont obligatoires.</div>`; return; }
+    if(!salaireValide(sal)){ m.innerHTML=`<div class="msg err">Salaire ${fmt(sal)} &lt; SMIG ${fmt(PARAMS.smig)} : embauche bloquée (contrôle légal).</div>`; return; }
+    if(bySoc(d.salaries,d).some(s=>s.matricule===mat)){ m.innerHTML=`<div class="msg err">Matricule déjà utilisé pour ${esc(soc(d))}.</div>`; return; }
+    const id=Store.next(d,"salaries");
+    const s={id,societe:soc(d),matricule:mat,matCnps:g("e_cnps"),nom,prenom:g("e_pre"),
+      naissance:g("e_nais"),sexe:g("e_sexe"),nationalite:"Camerounaise",situation:g("e_sit"),
+      enfants:Number(g("e_enf")||0),poste:g("e_poste"),categorie:g("e_cat"),embauche:g("e_emb"),
+      salaireBase:sal,statut:"Actif",tel:g("e_tel")};
+    d.salaries.push(s);
+    const cid=Store.next(d,"contrats");
+    d.contrats.push({id:cid,societe:soc(d),salarieId:id,type:g("e_type"),debut:g("e_emb"),fin:"",
+      essaiMois:Number(g("e_essai")||0),salaire:sal,statut:"En cours"});
+    audit(d,"Embauche (W1)",`${mat} — ${nom} ${g("e_pre")} — contrat ${g("e_type")}`);
+    this.save();
+    this.imprimerContrat(id);
+  },
+
+  /* ---------- M02 Contrats ---------- */
+  view_M02(){
+    const d=this.d, list=bySoc(d.contrats,d);
+    this.set(`
+      <h1>Contrats</h1><div class="sub">M02 — CDD/CDI (Art. 25/28/34 CT)</div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th>Type</th><th>Début</th><th>Essai</th>
+        <th class="right">Salaire</th><th>Statut</th><th class="noprint"></th></tr></thead>
+      <tbody>${list.length?list.map(c=>{const s=salById(d,c.salarieId)||{};return `
+        <tr><td>${esc(s.matricule||"?")} — ${esc(s.nom||"")}</td><td>${esc(c.type)}</td>
+          <td>${esc(c.debut)}</td><td>${c.essaiMois||0} mois</td><td class="right">${fmt(c.salaire)}</td>
+          <td><span class="pill info">${esc(c.statut)}</span></td>
+          <td class="noprint"><button class="btn sec sm" onclick="App.imprimerContrat(${c.salarieId})">Éditer PDF</button></td></tr>`;}).join("")
+        :`<tr><td colspan="7" class="muted">Aucun contrat.</td></tr>`}</tbody></table></div>`);
+  },
+
+  /* ---------- M11 Organisation & postes ---------- */
+  view_M11(){
+    const d=this.d, list=bySoc(d.postes,d);
+    this.set(`
+      <h1>Organisation &amp; postes</h1><div class="sub">M11 — directions / services / postes</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Intitulé</label><input id="p_int"></div>
+        <div><label>Service</label><input id="p_srv"></div>
+        <div><label>Catégorie</label><input id="p_cat"></div>
+      </div><div style="margin-top:10px"><button class="btn" onclick="App.addPoste()">Ajouter le poste</button></div></div>
+      <div class="card"><table><thead><tr><th>Intitulé</th><th>Service</th><th>Catégorie</th></tr></thead>
+      <tbody>${list.length?list.map(p=>`<tr><td>${esc(p.intitule)}</td><td>${esc(p.service||"")}</td><td>${esc(p.categorie||"")}</td></tr>`).join("")
+        :`<tr><td colspan="3" class="muted">Aucun poste.</td></tr>`}</tbody></table></div>`);
+  },
+  addPoste(){ const d=this.d, g=id=>document.getElementById(id).value.trim();
+    if(!g("p_int")) return; const id=Store.next(d,"postes");
+    d.postes.push({id,societe:soc(d),intitule:g("p_int"),service:g("p_srv"),categorie:g("p_cat")});
+    audit(d,"Création poste",g("p_int")); this.save(); this.go("M11"); },
+
+  /* ---------- M03 Paie (W2) ---------- */
+  view_M03(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif");
+    const buls=bySoc(d.bulletins,d);
+    this.set(`
+      <h1>Paie — assistant W2</h1><div class="sub">Variables → calcul → contrôle d'écart → validation DRH → bulletin + DIPE</div>
+      <div class="steps"><div class="s on">1. Variables</div><div class="s">2. Calcul</div>
+        <div class="s">3. Contrôle</div><div class="s">4. Validation</div><div class="s">5. Bulletin</div></div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="pa_sal">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)} (${fmt(s.salaireBase)})</option>`).join("")||'<option value="">(aucun)</option>'}</select></div>
+        <div><label>Période (AAAA-MM)</label><input id="pa_per" value="${new Date().toISOString().slice(0,7)}"></div>
+        <div><label>Primes imposables</label><input id="pa_pi" type="number" value="0"></div>
+        <div><label>Primes non imposables</label><input id="pa_pni" type="number" value="0"></div>
+        <div><label>Majorations heures sup.</label><input id="pa_hs" type="number" value="0"></div>
+      </div><div style="margin-top:12px"><button class="btn" onclick="App.w2Calc()">Calculer</button></div></div>
+      <div id="pa_res"></div>
+      <div class="card"><b>Bulletins validés (${esc(soc(d))})</b>
+        <table style="margin-top:8px"><thead><tr><th>Période</th><th>Salarié</th><th class="right">Net</th>
+          <th class="right">Coût employeur</th><th class="noprint"></th></tr></thead>
+        <tbody>${buls.length?buls.map(b=>{const s=salById(d,b.salarieId)||{};return `
+          <tr><td>${esc(b.periode)}</td><td>${esc(s.matricule||"?")}</td><td class="right">${fmt(b.netAPayer)}</td>
+            <td class="right">${fmt(b.coutEmployeur)}</td>
+            <td class="noprint"><button class="btn sec sm" onclick="App.imprimerBulletin(${b.id})">Bulletin PDF</button></td></tr>`;}).join("")
+          :`<tr><td colspan="5" class="muted">Aucun bulletin.</td></tr>`}</tbody></table></div>`);
+  },
+  w2Calc(){
+    const d=this.d, g=id=>Number(document.getElementById(id).value||0);
+    const sid=Number(document.getElementById("pa_sal").value); const s=salById(d,sid);
+    if(!s){ document.getElementById("pa_res").innerHTML=`<div class="msg err">Sélectionnez un salarié.</div>`; return; }
+    const per=document.getElementById("pa_per").value;
+    const r=calculePaie(s.salaireBase,g("pa_pi"),g("pa_pni"),g("pa_hs"));
+    // Contrôle d'écart vs période précédente (dernier bulletin du salarié)
+    const prec=bySoc(d.bulletins,d).filter(b=>b.salarieId===sid).slice(-1)[0];
+    const ecart= prec? Math.round((r.netAPayer-prec.netAPayer)/(prec.netAPayer||1)*100):0;
+    this.wiz={sid,per,r};
+    document.getElementById("pa_res").innerHTML=`
+      <div class="card"><b>Bulletin (simulation) — ${esc(s.nom)} ${esc(s.prenom||"")}, période ${esc(per)}</b>
+      ${this.bulletinTable(r)}
+      <p class="bull">${prec?`Contrôle d'écart vs ${esc(prec.periode)} : <b>${ecart>0?'+':''}${ecart}%</b>`:'Première paie du salarié (pas de période précédente).'}</p>
+      <div class="row-actions noprint">
+        <button class="btn or" onclick="App.w2Valider()">Valider la paie (DRH) &amp; générer le bulletin</button></div></div>`;
+  },
+  w2Valider(){
+    const d=this.d, w=this.wiz; if(!w) return;
+    if(bySoc(d.bulletins,d).some(b=>b.salarieId===w.sid && b.periode===w.per)){
+      alert("Un bulletin existe déjà pour ce salarié et cette période."); return; }
+    const id=Store.next(d,"bulletins");
+    const b=Object.assign({id,societe:soc(d),salarieId:w.sid,periode:w.per,valideLe:new Date().toISOString()},w.r);
+    d.bulletins.push(b);
+    const s=salById(d,w.sid);
+    audit(d,"Paie validée (W2)",`Période ${w.per} — ${s.matricule} — net ${fmt(w.r.netAPayer)}`);
+    this.save();
+    this.imprimerBulletin(id);
+  },
+  bulletinTable(r){
+    return `<table class="bull" style="margin-top:8px"><tbody>
+      <tr><td>Salaire brut taxable (SBT)</td><td class="right">${fmt(r.sbt)}</td><td></td><td></td></tr>
+      <tr><td>PVID salarié (4,2%)</td><td class="right">-${fmt(r.pvidSal)}</td><td>PVID employeur</td><td class="right">${fmt(r.pvidPat)}</td></tr>
+      <tr><td>IRPP</td><td class="right">-${fmt(r.irpp)}</td><td>Allocations familiales (7%)</td><td class="right">${fmt(r.allocFam)}</td></tr>
+      <tr><td>CAC (10% IRPP)</td><td class="right">-${fmt(r.cac)}</td><td>Accident travail (2,5%)</td><td class="right">${fmt(r.accident)}</td></tr>
+      <tr><td>CFC salarié (1%)</td><td class="right">-${fmt(r.cfcSal)}</td><td>CFC employeur (1,5%)</td><td class="right">${fmt(r.cfcPat)}</td></tr>
+      <tr><td>RAV</td><td class="right">-${fmt(r.rav)}</td><td>FNE (1%)</td><td class="right">${fmt(r.fne)}</td></tr>
+      <tr><td>TDL</td><td class="right">-${fmt(r.tdl)}</td><td class="tot">Total patronal</td><td class="right tot">${fmt(r.totalPatronal)}</td></tr>
+      <tr><td class="tot">Total retenues</td><td class="right tot">-${fmt(r.totalRetenues)}</td><td class="tot">Coût employeur</td><td class="right tot">${fmt(r.coutEmployeur)}</td></tr>
+      <tr><td class="tot">NET À PAYER</td><td class="right tot">${fmt(r.netAPayer)}</td><td></td><td></td></tr>
+      </tbody></table>`;
+  },
+
+  /* ---------- M04 Congés (W3) ---------- */
+  soldeConges(sid){
+    const d=this.d, s=salById(d,sid); if(!s||!s.embauche) return 0;
+    const acquis=Math.floor(moisEntre(s.embauche)*1.5);        // Art. 89 : 1,5 j/mois
+    const pris=bySoc(d.conges,d).filter(c=>c.salarieId===sid&&c.statut==="Validé").reduce((a,c)=>a+(c.jours||0),0);
+    return Math.max(0,acquis-pris);
+  },
+  view_M04(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif"), list=bySoc(d.conges,d);
+    this.set(`
+      <h1>Congés &amp; absences — W3</h1><div class="sub">Acquisition 1,5 j/mois (Art. 89) ; maternité 14 sem. (Art. 84)</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="cg_sal" onchange="App.cgSolde()">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)}</option>`).join("")}</select></div>
+        <div><label>Type</label><select id="cg_type"><option>Congé annuel</option><option>Maternité</option><option>Absence</option></select></div>
+        <div><label>Début</label><input id="cg_deb" type="date"></div>
+        <div><label>Jours</label><input id="cg_j" type="number" value="1" min="1"></div>
+      </div>
+      <p id="cg_solde" class="bull"></p>
+      <button class="btn" onclick="App.w3Valider()">Valider le congé</button></div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th>Type</th><th>Début</th><th>Jours</th><th>Statut</th></tr></thead>
+      <tbody>${list.length?list.map(c=>{const s=salById(d,c.salarieId)||{};return `<tr><td>${esc(s.matricule||"?")}</td><td>${esc(c.type)}</td><td>${esc(c.debut)}</td><td>${c.jours}</td><td><span class="pill ok">${esc(c.statut)}</span></td></tr>`;}).join("")
+        :`<tr><td colspan="5" class="muted">Aucun congé.</td></tr>`}</tbody></table></div>`);
+    this.cgSolde();
+  },
+  cgSolde(){ const sid=Number(document.getElementById("cg_sal").value);
+    document.getElementById("cg_solde").innerHTML=`Solde acquis : <b>${this.soldeConges(sid)} jours</b>`; },
+  w3Valider(){ const d=this.d, sid=Number(document.getElementById("cg_sal").value);
+    const j=Number(document.getElementById("cg_j").value||0), type=document.getElementById("cg_type").value;
+    const deb=document.getElementById("cg_deb").value;
+    if(type==="Congé annuel" && j>this.soldeConges(sid)){ alert("Jours demandés supérieurs au solde acquis."); return; }
+    const id=Store.next(d,"conges");
+    d.conges.push({id,societe:soc(d),salarieId:sid,type,debut:deb,jours:j,statut:"Validé"});
+    audit(d,"Congé validé (W3)",`${type} — ${j} j`); this.save(); this.go("M04"); },
+
+  /* ---------- M05 Discipline (W4) ---------- */
+  view_M05(){
+    const d=this.d, actifs=bySoc(d.salaries,d), list=bySoc(d.disciplines,d);
+    this.set(`
+      <h1>Discipline — W4</h1><div class="sub">Demande d'explication → réponse → décision (mise à pied ≤ 8 j) → registre</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="ds_sal">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)}</option>`).join("")}</select></div>
+        <div><label>Date des faits</label><input id="ds_date" type="date"></div>
+        <div><label>Sanction</label><select id="ds_sanc"><option>Avertissement</option><option>Blâme</option><option>Mise à pied (≤ 8 j)</option></select></div>
+        <div><label>Jours de mise à pied</label><input id="ds_j" type="number" value="0" min="0" max="8"></div>
+      </div>
+      <label>Motif (demande d'explication)</label><textarea id="ds_motif" rows="2"></textarea>
+      <label>Réponse du salarié</label><textarea id="ds_rep" rows="2"></textarea>
+      <div style="margin-top:10px"><button class="btn" onclick="App.w4Valider()">Enregistrer la décision</button></div></div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th>Date</th><th>Sanction</th><th>Motif</th></tr></thead>
+      <tbody>${list.length?list.map(x=>{const s=salById(d,x.salarieId)||{};return `<tr><td>${esc(s.matricule||"?")}</td><td>${esc(x.dateFaits)}</td><td>${esc(x.sanction)}</td><td>${esc(x.motif||"")}</td></tr>`;}).join("")
+        :`<tr><td colspan="4" class="muted">Aucun dossier.</td></tr>`}</tbody></table></div>`);
+  },
+  w4Valider(){ const d=this.d, g=id=>document.getElementById(id).value;
+    const j=Number(g("ds_j")||0); if(j>8){ alert("La mise à pied ne peut excéder 8 jours."); return; }
+    const id=Store.next(d,"disciplines");
+    d.disciplines.push({id,societe:soc(d),salarieId:Number(g("ds_sal")),dateFaits:g("ds_date"),
+      motif:g("ds_motif"),reponse:g("ds_rep"),sanction:g("ds_sanc")+(j?` (${j} j)`:"")});
+    audit(d,"Décision disciplinaire (W4)",g("ds_sanc")); this.save(); this.go("M05"); },
+
+  /* ---------- M06 Départs (W5) ---------- */
+  tauxIndemnite(ans){ for(const t of PARAMS.indemnite){ if(ans<=t.maxAns) return t.taux; } return 0.35; },
+  view_M06(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif"), list=bySoc(d.departs,d);
+    this.set(`
+      <h1>Départs &amp; licenciements — W5</h1><div class="sub">Motif → procédure → calcul des droits (préavis + indemnité Art. 37 + congés non pris) → certificat</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="dp_sal">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)}</option>`).join("")}</select></div>
+        <div><label>Date de départ</label><input id="dp_date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div><label>Motif</label><select id="dp_motif"><option>Licenciement</option><option>Démission</option><option>Fin de CDD</option><option>Retraite</option></select></div>
+        <div><label>Préavis (mois, arrêté 016/MTPS)</label><input id="dp_preavis" type="number" value="1" min="0"></div>
+      </div>
+      <div style="margin-top:10px" class="row-actions"><button class="btn" onclick="App.w5Calc()">Calculer les droits</button></div></div>
+      <div id="dp_res"></div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th>Date</th><th>Motif</th><th class="right">Indemnité</th><th class="noprint"></th></tr></thead>
+      <tbody>${list.length?list.map(x=>{const s=salById(d,x.salarieId)||{};return `<tr><td>${esc(s.matricule||"?")}</td><td>${esc(x.dateDepart)}</td><td>${esc(x.motif)}</td><td class="right">${fmt(x.indemnite)}</td>
+        <td class="noprint"><button class="btn sec sm" onclick="App.imprimerCertificat(${x.salarieId})">Certificat</button></td></tr>`;}).join("")
+        :`<tr><td colspan="5" class="muted">Aucun départ.</td></tr>`}</tbody></table></div>`);
+  },
+  w5Calc(){
+    const d=this.d, sid=Number(document.getElementById("dp_sal").value), s=salById(d,sid);
+    if(!s) return;
+    const motif=document.getElementById("dp_motif").value;
+    const preavisMois=Number(document.getElementById("dp_preavis").value||0);
+    const dateDep=document.getElementById("dp_date").value;
+    const ans=Math.max(0,Math.floor(moisEntre(s.embauche)/12));
+    const taux=this.tauxIndemnite(ans);
+    // Indemnité Art. 37 : taux × salaire mensuel × années (uniquement licenciement)
+    const indemnite = (motif==="Licenciement"&&ans>=1)? Math.round(taux*s.salaireBase*ans):0;
+    const preavis = Math.round(preavisMois*s.salaireBase);
+    const soldeCg = this.soldeConges(sid);
+    const indemCg = Math.round(soldeCg*(s.salaireBase/26));   // congés non pris (base 26 j ouvrables)
+    const total = indemnite+preavis+indemCg;
+    this.wiz={sid,dateDep,motif,indemnite,total};
+    document.getElementById("dp_res").innerHTML=`
+      <div class="card"><b>Solde de tout compte — ${esc(s.nom)} ${esc(s.prenom||"")}</b>
+      <table class="bull" style="margin-top:8px"><tbody>
+        <tr><td>Ancienneté</td><td class="right">${ans} an(s)</td></tr>
+        <tr><td>Indemnité de préavis (${preavisMois} mois)</td><td class="right">${fmt(preavis)}</td></tr>
+        <tr><td>Indemnité de licenciement (Art. 37 — ${Math.round(taux*100)}%/an)</td><td class="right">${fmt(indemnite)}</td></tr>
+        <tr><td>Congés non pris (${soldeCg} j)</td><td class="right">${fmt(indemCg)}</td></tr>
+        <tr><td class="tot">TOTAL SOLDE DE TOUT COMPTE</td><td class="right tot">${fmt(total)}</td></tr>
+      </tbody></table>
+      <div class="row-actions noprint"><button class="btn or" onclick="App.w5Valider()">Valider le départ &amp; éditer le certificat</button></div></div>`;
+  },
+  w5Valider(){
+    const d=this.d, w=this.wiz; if(!w) return; const s=salById(d,w.sid);
+    const id=Store.next(d,"departs");
+    d.departs.push({id,societe:soc(d),salarieId:w.sid,dateDepart:w.dateDep,motif:w.motif,indemnite:w.total});
+    s.statut="Sorti";
+    audit(d,"Départ validé (W5)",`${s.matricule} — ${w.motif} — solde ${fmt(w.total)}`);
+    this.save(); this.imprimerCertificat(w.sid);
+  },
+
+  /* ---------- M07 CNPS / DIPE ---------- */
+  view_M07(){
+    const d=this.d, buls=bySoc(d.bulletins,d);
+    const parPer={};
+    buls.forEach(b=>{ const p=parPer[b.periode]||(parPer[b.periode]={n:0,pvid:0,pf:0,at:0,base:0});
+      p.n++; p.pvid+=b.pvidSal+b.pvidPat; p.pf+=b.allocFam; p.at+=b.accident; p.base+=b.sbt; });
+    const rows=Object.keys(parPer).sort().map(per=>{const x=parPer[per];return `
+      <tr><td>${esc(per)}</td><td>${x.n}</td><td class="right">${fmt(x.base)}</td><td class="right">${fmt(x.pvid)}</td>
+      <td class="right">${fmt(x.pf)}</td><td class="right">${fmt(x.at)}</td></tr>`;}).join("");
+    this.set(`
+      <h1>CNPS / DIPE</h1><div class="sub">M07 — déclaration mensuelle agrégée (PVID + PF + AT)</div>
+      <div class="card"><table><thead><tr><th>Période</th><th>Effectif</th><th class="right">Assiette</th>
+        <th class="right">PVID total</th><th class="right">Alloc. fam.</th><th class="right">Accident</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="6" class="muted">Aucune ligne — validez d'abord des bulletins (M03).</td></tr>`}</tbody></table></div>`);
+  },
+
+  /* ---------- M08 Fiscal / DSF ---------- */
+  view_M08(){
+    const d=this.d, buls=bySoc(d.bulletins,d);
+    const t=buls.reduce((a,b)=>{a.irpp+=b.irpp;a.cac+=b.cac;a.cfc+=b.cfcSal+b.cfcPat;a.rav+=b.rav;a.tdl+=b.tdl;return a;},
+      {irpp:0,cac:0,cfc:0,rav:0,tdl:0});
+    this.set(`
+      <h1>Fiscal / DSF</h1><div class="sub">M08 — récapitulatif IRPP / CAC / CFC / RAV / TDL (${buls.length} bulletins)</div>
+      <div class="card"><table><thead><tr><th>Impôt / taxe</th><th class="right">Cumul</th></tr></thead><tbody>
+        <tr><td>IRPP</td><td class="right">${fmt(t.irpp)}</td></tr>
+        <tr><td>CAC</td><td class="right">${fmt(t.cac)}</td></tr>
+        <tr><td>CFC (salarié + employeur)</td><td class="right">${fmt(t.cfc)}</td></tr>
+        <tr><td>RAV</td><td class="right">${fmt(t.rav)}</td></tr>
+        <tr><td>TDL</td><td class="right">${fmt(t.tdl)}</td></tr>
+      </tbody></table></div>`);
+  },
+
+  /* ---------- M10 Documents ---------- */
+  view_M10(){
+    const d=this.d, list=bySoc(d.salaries,d);
+    this.set(`
+      <h1>Documents &amp; attestations</h1><div class="sub">M10 — attestation de travail, contrat, certificat</div>
+      <div class="card"><label>Salarié</label><select id="doc_sal">${list.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)}</option>`).join("")}</select>
+        <div style="margin-top:12px" class="row-actions">
+          <button class="btn" onclick="App.imprimerAttestation(Number(document.getElementById('doc_sal').value))">Attestation de travail</button>
+          <button class="btn sec" onclick="App.imprimerContrat(Number(document.getElementById('doc_sal').value))">Contrat</button>
+          <button class="btn sec" onclick="App.imprimerCertificat(Number(document.getElementById('doc_sal').value))">Certificat de travail</button>
+        </div></div>`);
+  },
+
+  /* ---------- M12 Temps de travail ---------- */
+  view_M12(){
+    this.set(`<h1>Temps de travail</h1><div class="sub">M12 — durée légale 40 h/semaine, heures supplémentaires</div>
+      <div class="card"><p class="bull">Saisie des heures supplémentaires : la <b>majoration HS</b> est intégrée au calcul de paie (M03)
+      en tant que composante du salaire brut taxable, conformément au moteur §3.3.</p>
+      <p class="muted">Écran de pointage détaillé à compléter (interface prête).</p></div>`);
+  },
+  /* ---------- M13 Avances & prêts ---------- */
+  view_M13(){
+    const d=this.d, actifs=bySoc(d.salaries,d).filter(s=>s.statut==="Actif"), list=bySoc(d.avances,d);
+    this.set(`<h1>Avances &amp; prêts</h1><div class="sub">M13 — quotité cessible (1/3 du salaire net)</div>
+      <div class="card noprint"><div class="grid">
+        <div><label>Salarié</label><select id="av_sal">${actifs.map(s=>`<option value="${s.id}">${esc(s.matricule)} — ${esc(s.nom)}</option>`).join("")}</select></div>
+        <div><label>Montant</label><input id="av_m" type="number" value="0"></div>
+        <div><label>Échéances (mois)</label><input id="av_e" type="number" value="1" min="1"></div>
+      </div><button class="btn" style="margin-top:10px" onclick="App.addAvance()">Accorder</button></div>
+      <div class="card"><table><thead><tr><th>Salarié</th><th class="right">Montant</th><th>Échéances</th><th class="right">Mensualité</th></tr></thead>
+      <tbody>${list.length?list.map(a=>{const s=salById(d,a.salarieId)||{};return `<tr><td>${esc(s.matricule||"?")}</td><td class="right">${fmt(a.montant)}</td><td>${a.echeances}</td><td class="right">${fmt(a.montant/a.echeances)}</td></tr>`;}).join("")
+        :`<tr><td colspan="4" class="muted">Aucune avance.</td></tr>`}</tbody></table></div>`);
+  },
+  addAvance(){ const d=this.d, sid=Number(document.getElementById("av_sal").value);
+    const m=Number(document.getElementById("av_m").value||0), e=Number(document.getElementById("av_e").value||1);
+    const s=salById(d,sid); if(!s||m<=0) return;
+    const net=calculePaie(s.salaireBase).netAPayer, quotite=net/3;
+    if(m/e>quotite){ alert(`Mensualité ${fmt(m/e)} > quotité cessible ${fmt(quotite)} (1/3 du net).`); return; }
+    const id=Store.next(d,"avances"); d.avances.push({id,societe:soc(d),salarieId:sid,montant:m,echeances:e});
+    audit(d,"Avance accordée",`${fmt(m)} sur ${e} mois`); this.save(); this.go("M13"); },
+
+  /* ---------- M14 Administration & audit ---------- */
+  view_M14(){
+    const d=this.d, log=bySoc(d.audit,d).slice(0,200);
+    this.set(`
+      <h1>Administration &amp; sécurité</h1><div class="sub">M14 — utilisateurs, rôles, journal d'audit horodaté (ISO 9001 §7.5)</div>
+      <div class="twocol">
+        <div class="card"><b>Utilisateurs &amp; rôles</b>
+          <table style="margin-top:8px"><thead><tr><th>Login</th><th>Rôle</th><th>Société</th></tr></thead>
+          <tbody>${d.utilisateurs.map(u=>`<tr><td>${esc(u.login)}</td><td><span class="pill info">${esc(u.role)}</span></td><td>${esc(u.societe)}</td></tr>`).join("")}</tbody></table>
+          <p class="muted" style="margin-top:8px">Rôles : DRH, PAIE, MANAGER, SALARIE, AUDITEUR (lecture seule).</p>
+        </div>
+        <div class="card"><b>Journal d'audit (${log.length})</b>
+          <table style="margin-top:8px"><thead><tr><th>Horodatage</th><th>Acteur</th><th>Action</th><th>Détail</th></tr></thead>
+          <tbody>${log.map(a=>`<tr><td>${esc(new Date(a.horodatage).toLocaleString("fr-FR"))}</td><td>${esc(a.acteur)}</td><td>${esc(a.action)}</td><td>${esc(a.detail||"")}</td></tr>`).join("")}</tbody></table>
+        </div>
+      </div>`);
+  },
+
+  /* ---------- M15 Paramétrage légal + Auto-test + Sauvegarde ---------- */
+  view_M15(){
+    const t=autoTestPaie();
+    this.set(`
+      <h1>Paramétrage légal</h1><div class="sub">M15 — source unique de vérité (révision annuelle Loi de finances)</div>
+      <div class="card"><b>Auto-test paie (cas de référence client)</b>
+        <p id="m15test" class="bull">${t.ok?`<span class="pill ok">✅ Conforme</span> base 350 000 → net 302 792 / coût employeur 406 700`
+          :`<span class="pill no">❌ Non conforme</span> ${esc(t.ecarts.join(' ; '))}`}</p>
+        <button class="btn" onclick="App.runAutoTest()">▶ Rejouer l'auto-test</button>
+        <div id="m15detail"></div></div>
+      <div class="card"><b>Paramètres éditables</b><div class="grid" style="margin-top:8px">
+        <div><label>SMIG mensuel</label><input id="pp_smig" type="number" value="${PARAMS.smig}"></div>
+        <div><label>Plafond CNPS</label><input id="pp_plaf" type="number" value="${PARAMS.plafondCnps}"></div>
+        <div><label>PVID salarié</label><input id="pp_pvs" type="number" step="0.001" value="${PARAMS.pvidSal}"></div>
+        <div><label>PVID employeur</label><input id="pp_pvp" type="number" step="0.001" value="${PARAMS.pvidPat}"></div>
+        <div><label>Allocations familiales</label><input id="pp_af" type="number" step="0.001" value="${PARAMS.allocFam}"></div>
+        <div><label>Accident du travail</label><input id="pp_at" type="number" step="0.001" value="${PARAMS.accidentTravail}"></div>
+        <div><label>CFC salarié</label><input id="pp_cfs" type="number" step="0.001" value="${PARAMS.cfcSal}"></div>
+        <div><label>CFC employeur</label><input id="pp_cfp" type="number" step="0.001" value="${PARAMS.cfcPat}"></div>
+        <div><label>FNE</label><input id="pp_fne" type="number" step="0.001" value="${PARAMS.fne}"></div>
+        <div><label>CAC (% IRPP)</label><input id="pp_cac" type="number" step="0.001" value="${PARAMS.cac}"></div>
+      </div>
+      <div style="margin-top:12px" class="row-actions">
+        <button class="btn" onclick="App.saveParams()">Enregistrer les paramètres</button>
+        <button class="btn sec" onclick="App.resetParams()">Réinitialiser (valeurs de référence)</button></div></div>
+      <div class="card"><b>Sauvegarde / continuité d'activité</b>
+        <div class="row-actions" style="margin-top:8px">
+          <button class="btn sec" onclick="App.exportJSON()">⬇ Exporter (JSON)</button>
+          <label class="btn sec" style="cursor:pointer">⬆ Importer (JSON)<input type="file" accept="application/json" style="display:none" onchange="App.importJSON(this.files[0])"></label>
+          <button class="btn danger" onclick="App.resetAll()">Réinitialiser la base</button>
+        </div>
+        <p class="muted" style="margin-top:6px">Persistance : ${Store.useLS?"localStorage du navigateur":"mémoire (localStorage indisponible)"}.</p></div>`);
+  },
+  runAutoTest(){
+    const t=autoTestPaie();
+    document.getElementById("m15test").innerHTML=t.ok
+      ?`<span class="pill ok">✅ Conforme</span> base 350 000 → net 302 792 / coût employeur 406 700`
+      :`<span class="pill no">❌ Non conforme</span> ${esc(t.ecarts.join(' ; '))}`;
+    document.getElementById("m15detail").innerHTML=`<div style="margin-top:10px">${this.bulletinTable(t.r)}</div>`;
+  },
+  saveParams(){ const g=id=>Number(document.getElementById(id).value);
+    Object.assign(PARAMS,{smig:g("pp_smig"),plafondCnps:g("pp_plaf"),pvidSal:g("pp_pvs"),pvidPat:g("pp_pvp"),
+      allocFam:g("pp_af"),accidentTravail:g("pp_at"),cfcSal:g("pp_cfs"),cfcPat:g("pp_cfp"),fne:g("pp_fne"),cac:g("pp_cac")});
+    this.d.params={smig:PARAMS.smig,plafondCnps:PARAMS.plafondCnps,pvidSal:PARAMS.pvidSal,pvidPat:PARAMS.pvidPat,
+      allocFam:PARAMS.allocFam,accidentTravail:PARAMS.accidentTravail,cfcSal:PARAMS.cfcSal,cfcPat:PARAMS.cfcPat,fne:PARAMS.fne,cac:PARAMS.cac};
+    audit(this.d,"Paramétrage M15","Mise à jour des paramètres légaux"); this.save(); this.go("M15");
+  },
+  resetParams(){ this.d.params=null; this.save(); location.reload(); },
+  exportJSON(){ const blob=new Blob([JSON.stringify(this.d,null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download=`mlc_rh_${new Date().toISOString().slice(0,10)}.json`; a.click(); },
+  importJSON(file){ if(!file) return; const r=new FileReader();
+    r.onload=()=>{ try{ this.d=JSON.parse(r.result); this.save(); alert("Import réussi."); location.reload(); }
+      catch(e){ alert("Fichier JSON invalide."); } }; r.readAsText(file); },
+  resetAll(){ if(confirm("Réinitialiser toute la base (données de démonstration) ?")){ this.d=seed(); this.save(); location.reload(); } },
+
+  view_todo(){ this.set(`<h1>Module</h1><div class="card muted">Interface prête à compléter.</div>`); },
+
+  /* ============================================================================
+     6) ÉDITIONS IMPRIMABLES (#print-area + window.print) — pied « Document interne SMQ »
+     ============================================================================ */
+  docHead(titre,ref){
+    return `<div class="head"><div><b>MERCURE LOGISTICS SARL</b><br><span class="muted">Transit &amp; Logistique – Douala</span></div>
+      <div style="text-align:right"><h2>${titre}</h2><span class="muted">${ref} · v1.0</span></div></div>`;
+  },
+  docFoot(){ return `<div class="foot"><span>Document interne SMQ — MLC-Gestion-RH</span><span>Édité le ${new Date().toLocaleDateString("fr-FR")}</span></div>`; },
+  print(html){ document.getElementById("print-area").innerHTML=`<div class="doc">${html}</div>`; window.print(); },
+
+  imprimerBulletin(id){
+    const d=this.d, b=bySoc(d.bulletins,d).find(x=>x.id===id)||d.bulletins.find(x=>x.id===id); if(!b) return;
+    const s=salById(d,b.salarieId)||{};
+    this.print(`${this.docHead("Bulletin de paie","MLC-RH-BUL-"+id)}
+      <p><b>${esc(s.nom)} ${esc(s.prenom||"")}</b> — Matricule ${esc(s.matricule||"")} — CNPS ${esc(s.matCnps||"")}<br>
+      Poste : ${esc(s.poste||"")} · Catégorie ${esc(s.categorie||"")} · Période <b>${esc(b.periode)}</b> · Société ${esc(b.societe)}</p>
+      ${this.bulletinTable(b)} ${this.docFoot()}`);
+  },
+  imprimerContrat(sid){
+    const d=this.d, s=salById(d,sid); if(!s) return;
+    const c=bySoc(d.contrats,d).find(x=>x.salarieId===sid)||{};
+    this.print(`${this.docHead("Contrat de travail","MLC-RH-CTR-"+sid)}
+      <p>Entre <b>MERCURE LOGISTICS SARL</b> (l'Employeur) et <b>${esc(s.nom)} ${esc(s.prenom||"")}</b> (le Salarié),
+      matricule ${esc(s.matricule)}, il est conclu un contrat <b>${esc(c.type||"CDI")}</b> (Art. 25/28 CT).</p>
+      <table class="bull"><tbody>
+        <tr><td>Poste</td><td>${esc(s.poste||"")} (catégorie ${esc(s.categorie||"")})</td></tr>
+        <tr><td>Date d'embauche</td><td>${esc(s.embauche||"")}</td></tr>
+        <tr><td>Période d'essai (Art. 34)</td><td>${c.essaiMois||0} mois</td></tr>
+        <tr><td>Salaire de base mensuel</td><td>${fmt(s.salaireBase)} FCFA</td></tr>
+      </tbody></table>
+      <p style="margin-top:30px">Fait à Douala, le ${new Date().toLocaleDateString("fr-FR")}.</p>
+      <table style="margin-top:20px"><tr><td>L'Employeur</td><td style="text-align:right">Le Salarié</td></tr></table>
+      ${this.docFoot()}`);
+  },
+  imprimerCertificat(sid){
+    const d=this.d, s=salById(d,sid); if(!s) return;
+    this.print(`${this.docHead("Certificat de travail","MLC-RH-CERT-"+sid)}
+      <p>Nous soussignés, <b>MERCURE LOGISTICS SARL</b>, certifions que <b>${esc(s.nom)} ${esc(s.prenom||"")}</b>
+      (matricule ${esc(s.matricule)}) a été employé(e) en qualité de <b>${esc(s.poste||"")}</b>
+      à compter du ${esc(s.embauche||"")}.</p>
+      <p>Le présent certificat est délivré conformément à l'article 39 du Code du travail camerounais,
+      pour servir et valoir ce que de droit.</p>
+      <p style="margin-top:30px">Fait à Douala, le ${new Date().toLocaleDateString("fr-FR")}.</p>
+      ${this.docFoot()}`);
+  },
+  imprimerAttestation(sid){
+    const d=this.d, s=salById(d,sid); if(!s) return;
+    this.print(`${this.docHead("Attestation de travail","MLC-RH-ATT-"+sid)}
+      <p>Nous attestons que <b>${esc(s.nom)} ${esc(s.prenom||"")}</b>, matricule ${esc(s.matricule)},
+      exerce les fonctions de <b>${esc(s.poste||"")}</b> au sein de MERCURE LOGISTICS SARL
+      depuis le ${esc(s.embauche||"")}, et perçoit un salaire de base de ${fmt(s.salaireBase)} FCFA.</p>
+      <p>En foi de quoi la présente attestation lui est délivrée pour servir et valoir ce que de droit.</p>
+      <p style="margin-top:30px">Fait à Douala, le ${new Date().toLocaleDateString("fr-FR")}.</p>
+      ${this.docFoot()}`);
+  }
+};
+window.addEventListener("DOMContentLoaded",()=>App.start());
+</script>
+</body>
+</html>

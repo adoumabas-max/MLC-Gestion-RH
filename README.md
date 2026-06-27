@@ -1,10 +1,36 @@
-# MLC-Gestion-RH — application RH d'entreprise (variante B)
+# MLC-Gestion-RH — application RH de Mercure Logistics
 
 Mercure Logistics SARL — Transit & Logistique, Douala.
-Spring Boot 3 · MySQL 8 · Thymeleaf · Spring Security (session + JWT) · JasperReports.
-Conforme ISO 9001:2015 et au Code du travail camerounais (Loi n° 92/007).
+Conforme ISO 9001:2015 et au Code du travail camerounais (Loi n° 92/007), cahier des
+charges **MLC-RH-CDC-001 v1.0**.
 
-## Démarrage
+Le projet réunit les **deux variantes** prévues par les skills, partageant la **même
+spécification métier** et surtout le **même moteur de paie** (cas de référence bloquant
+identique : base 350 000 → **net 302 792** / **coût employeur 406 700**) :
+
+| Variante | Techno | Fichier / dossier | Pour qui |
+|----------|--------|-------------------|----------|
+| **A — Mono-fichier HTML** | HTML/CSS/JS natif, hors-ligne, `localStorage` | [`MLC-Gestion-RH.html`](MLC-Gestion-RH.html) | mise en main immédiate, poste isolé, démo, clé USB |
+| **B — Entreprise** | Spring Boot 3 · MySQL 8 · Thymeleaf · Security (session + JWT) · JasperReports | `pom.xml` + `src/` | déploiement serveur, multi-postes, PDF, API REST |
+
+## Variante A — application mono-fichier (autonome)
+
+Ouvrir **`MLC-Gestion-RH.html`** dans un navigateur (double-clic) — aucune installation,
+aucun serveur, aucun appel réseau. Ou servir localement :
+```bash
+python3 -m http.server 8000   # puis http://localhost:8000/MLC-Gestion-RH.html
+```
+- 15 modules (M01–M15), 5 wizards (W1 embauche, W2 paie, W3 congés, W4 discipline, W5 départ),
+  multi-sociétés (MLC / MLC RCA / TRANSEXPRESS).
+- **M15 → « Rejouer l'auto-test »** vérifie le cas de référence (✅ net 302 792 / coût 406 700).
+- Éditions imprimables (`@media print`) : bulletin, contrat, certificat, attestation.
+- Sauvegarde par **export / import JSON** ; persistance `localStorage` (repli mémoire).
+
+## Variante B — application d'entreprise (Spring Boot)
+
+Spring Boot 3 · MySQL 8 · Thymeleaf · Spring Security (session + JWT) · JasperReports.
+
+### Démarrage
 
 1. **Base de données**
    ```sql
