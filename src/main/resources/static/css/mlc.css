@@ -26,3 +26,33 @@ input,select{width:100%;padding:8px 9px;border:1px solid #c5cfd8;border-radius:7
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
 .ok{background:#e6f5ea;color:#1e7a33}.ko{background:#fdeaea;color:#b3261e}
 .login{max-width:360px;margin:80px auto;background:#fff;border:1px solid var(--bord);border-radius:12px;padding:26px}
+
+/* ===== M16 — Caisse / Encaissement ===== */
+.flash{border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;font-weight:600}
+.flash.ok{background:#e6f5ea;color:#1e7a33;border:1px solid #b9e3c4}
+.tabs{display:flex;gap:4px;margin-bottom:-1px}
+.tabs .tab{background:#eef3f8;color:#48555f;border:1px solid var(--bord);border-bottom:none;border-radius:8px 8px 0 0;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.tabs .tab.on{background:#fff;color:var(--navy);border-top:3px solid var(--or);padding-top:7px}
+.pane{display:none}.pane.on{display:block}
+.form-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--bord);padding-bottom:12px;margin-bottom:16px}
+.form-head-org{display:block;font-weight:700;color:var(--navy);font-size:16px}
+.form-head-doc{display:block;color:#6a7783;font-size:13px}
+.form-head-piece{text-align:right}
+.form-head-piece .l{display:block;font-size:11px;color:#8a97a3;text-transform:uppercase}
+.form-head-piece .v{font-size:22px;font-weight:700;color:var(--or)}
+.fieldset{border:1px solid var(--bord);border-radius:10px;padding:6px 16px 16px;margin-bottom:16px}
+.fieldset.tiers{background:#fffdf3;border-color:#ece2b8}
+.fieldset-title{display:inline-block;background:var(--petrole);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:3px 12px;border-radius:0 0 8px 8px;margin-bottom:6px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px}
+.form-grid .span2{grid-column:span 2}.form-grid .span3{grid-column:1/-1}
+input[readonly]{background:#f4f6f8;color:#48555f}
+.hint{font-size:12px;color:#8a97a3;margin:10px 2px 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--bord);padding-top:16px;margin-top:4px}
+.btn.ghost{background:#fff;color:var(--bleu);border:1px solid var(--bleu)}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--bord)}
+.table-wrap table{border:none}
+.num{font-variant-numeric:tabular-nums}
+.ellip{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill.aff{background:#eef3f8;color:var(--bleu)}.pill.tx{background:#fdf3e0;color:#9a6b00}
+tfoot td{background:#f2f6fa;border-top:2px solid var(--bord)}
+@media(max-width:760px){.form-grid{grid-template-columns:1fr}.form-grid .span2,.form-grid .span3{grid-column:auto}}
